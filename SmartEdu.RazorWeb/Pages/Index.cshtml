@@ -1,0 +1,161 @@
+﻿@page
+@model SmartEdu.RazorWeb.Pages.IndexModel
+@{
+    ViewData["Title"] = "SmartEdu RAG System";
+}
+
+<div class="text-center py-5">
+    <span class="badge bg-primary bg-opacity-10 text-primary border border-primary
+        border-opacity-25 rounded-pill px-3 py-1 mb-3 d-inline-block">
+        ✨ RAG-powered learning
+    </span>
+    <h1 class="display-5 fw-semibold mb-3">
+        Học thông minh hơn với<br>
+        <span class="text-primary">SmartEdu AI</span>
+    </h1>
+    <p class="lead text-muted mx-auto mb-4" style="max-width:540px">
+        Hệ thống hỏi đáp dựa trên tài liệu học tập của bạn.
+        Upload PDF/DOCX, đặt câu hỏi, nhận câu trả lời chính xác có trích dẫn nguồn.
+    </p>
+    @{ var role = HttpContext.Session.GetString("Role") ?? string.Empty; }
+    <div class="d-flex gap-2 justify-content-center flex-wrap mb-5">
+        <a asp-page="/Chat/Index" class="btn btn-primary px-4">
+            🤖 Bắt đầu Chat RAG
+        </a>
+
+        @* Upload visible only to Admin or Lecturer *@
+        @if (!string.IsNullOrEmpty(role) && (role.Equals("Admin", System.StringComparison.OrdinalIgnoreCase) || role.Equals("Lecturer", System.StringComparison.OrdinalIgnoreCase)))
+        {
+            <a asp-page="/Documents/UploadDocument" class="btn btn-outline-secondary px-4">
+                ⬆️ Upload tài liệu
+            </a>
+        }
+
+        @* My Documents visible to Students only *@
+        @if (!string.IsNullOrEmpty(role) && role.Equals("Student", System.StringComparison.OrdinalIgnoreCase))
+        {
+            <a asp-page="/Documents/MyDocuments" class="btn btn-outline-secondary px-4">
+                📁 Xem tài liệu
+            </a>
+        }
+
+        @if (!string.IsNullOrEmpty(role) && role.Equals("Admin", System.StringComparison.OrdinalIgnoreCase))
+        {
+            <a asp-page="/Subjects/Index" class="btn btn-outline-primary px-4">⚙️ Manage Subjects</a>
+            <a asp-page="/Lecturers/Index" class="btn btn-outline-primary px-4">👩‍🏫 Manage Lecturers</a>
+        }
+    </div>
+
+    <div class="d-flex justify-content-center mb-3">
+        <p class="text-muted">Xin chào, <strong>@HttpContext.Session.GetString("Username")</strong></p>
+    </div>
+
+@section Scripts {
+    <script src="~/lib/microsoft/signalr/dist/browser/signalr.min.js" asp-append-version="false"></script>
+    <script src="~/js/signalr-subject.js" asp-append-version="true"></script>
+}
+
+</div>
+
+@* Features *@
+<div class="container mb-5 mt-5">
+    <h2 class="text-center fw-semibold mb-4">Tính năng chính</h2>
+    <div class="row g-3">
+        <div class="col-md-3 col-sm-6">
+            <div class="card h-100 border shadow-none">
+                <div class="card-body">
+                    <div class="bg-primary bg-opacity-10 rounded-2 d-inline-flex
+                        p-2 mb-3">
+                        <span style="font-size:22px">📄</span>
+                    </div>
+                    <h5 class="card-title fw-semibold">Quản lý tài liệu</h5>
+                    <p class="card-text text-muted small">
+                        Upload PDF/DOCX, tự động chunking và embedding theo môn học.
+                    </p>
+                    <a asp-page="/Documents/Index" class="stretched-link"></a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 col-sm-6">
+            <div class="card h-100 border shadow-none">
+                <div class="card-body">
+                    <div class="bg-success bg-opacity-10 rounded-2 d-inline-flex
+                        p-2 mb-3">
+                        <span style="font-size:22px">🤖</span>
+                    </div>
+                    <h5 class="card-title fw-semibold">Chatbot RAG</h5>
+                    <p class="card-text text-muted small">
+                        Hỏi đáp thông minh, trích dẫn nguồn, lưu lịch sử theo phiên.
+                    </p>
+                    <a asp-page="/Chat/Index" class="stretched-link"></a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 col-sm-6">
+            <div class="card h-100 border shadow-none">
+                <div class="card-body">
+                    <div class="bg-warning bg-opacity-10 rounded-2 d-inline-flex
+                        p-2 mb-3">
+                        <span style="font-size:22px">📊</span>
+                    </div>
+                    <h5 class="card-title fw-semibold">Nghiên cứu RBL</h5>
+                    <p class="card-text text-muted small">
+                        So sánh RAG vs Fine-tuning, benchmark chunking strategies.
+                    </p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 col-sm-6">
+            <div class="card h-100 border shadow-none">
+                <div class="card-body">
+                    <div class="bg-danger bg-opacity-10 rounded-2 d-inline-flex
+                        p-2 mb-3">
+                        <span style="font-size:22px">🎓</span>
+                    </div>
+                    <h5 class="card-title fw-semibold">Quản lý môn học</h5>
+                    <p class="card-text text-muted small">
+                        Tổ chức tài liệu theo môn học, chương và chủ đề.
+                    </p>
+                    <a asp-page="/Subjects/Index" class="stretched-link"></a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<hr class="my-4" />
+
+@* Steps *@
+<div class="container pb-5">
+    <h2 class="text-center fw-semibold mb-4">Bắt đầu trong 3 bước</h2>
+    <div class="row g-3 text-center">
+        <div class="col-md-4">
+            <div class="bg-primary bg-opacity-10 rounded-circle d-inline-flex
+                align-items-center justify-content-center mb-3"
+                 style="width:48px;height:48px;font-weight:500">
+                1
+            </div>
+            <h5 class="fw-semibold">Tạo môn học</h5>
+            <p class="text-muted small">Thêm môn học và mô tả nội dung cần học</p>
+        </div>
+        <div class="col-md-4">
+            <div class="bg-primary bg-opacity-10 rounded-circle d-inline-flex
+                align-items-center justify-content-center mb-3"
+                 style="width:48px;height:48px;font-weight:500">
+                2
+            </div>
+            <h5 class="fw-semibold">Upload tài liệu</h5>
+            <p class="text-muted small">Upload file PDF/DOCX, hệ thống tự động xử lý</p>
+        </div>
+        <div class="col-md-4">
+            <div class="bg-primary bg-opacity-10 rounded-circle d-inline-flex
+                align-items-center justify-content-center mb-3"
+                 style="width:48px;height:48px;font-weight:500">
+                3
+            </div>
+            <h5 class="fw-semibold">Hỏi đáp AI</h5>
+            <p class="text-muted small">Đặt câu hỏi, nhận câu trả lời từ tài liệu của bạn</p>
+        </div>
+    </div>
+</div>
+

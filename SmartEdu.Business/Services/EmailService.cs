@@ -1,0 +1,59 @@
+﻿using MailKit.Net.Smtp;
+using Microsoft.Extensions.Configuration;
+using MimeKit;
+using SmartEdu.Business.Interfaces;
+
+namespace SmartEdu.Business.Services
+{
+    public class EmailService : IEmailService
+    {
+        private readonly IConfiguration _config;
+
+        public EmailService(IConfiguration config) => _config = config;
+
+        public async Task SendWelcomeEmailAsync(string toEmail, string fullName, string username, string password)
+        {
+            var email = new MimeMessage();
+            email.From.Add(MailboxAddress.Parse(_config["EmailSettings:From"]));
+            email.To.Add(MailboxAddress.Parse(toEmail));
+            email.Subject = "Chào mừng bạn đến với SmartEdu AI";
+
+            email.Body = new TextPart(MimeKit.Text.TextFormat.Html)
+            {
+                Text = $@"<h3>Chào {fullName},</h3>
+                      <p>Tài khoản SmartEdu của bạn đã được khởi tạo.</p>
+                      <p>Tên đăng nhập: <b>{username}</b></p>
+                      <p>Mật khẩu tạm thời: <b>{password}</b></p>
+                      <p><i>Lưu ý: Bạn bắt buộc phải đổi mật khẩu ngay sau lần đăng nhập đầu tiên.</i></p>"
+            };
+
+            using var smtp = new SmtpClient();
+            // Cấu hình SMTP (Gmail, Outlook, v.v.)
+            await smtp.ConnectAsync(_config["EmailSettings:Host"], int.Parse(_config["EmailSettings:Port"]), MailKit.Security.SecureSocketOptions.StartTls);
+            await smtp.AuthenticateAsync(_config["EmailSettings:User"], _config["EmailSettings:Pass"]);
+            await smtp.SendAsync(email);
+            await smtp.DisconnectAsync(true);
+        }
+
+        public async Task SendEnrollmentNotificationAsync(string toEmail, string fullName, string subjectName)
+        {
+            var email = new MimeMessage();
+            email.From.Add(MailboxAddress.Parse(_config["EmailSettings:From"]));
+            email.To.Add(MailboxAddress.Parse(toEmail));
+            email.Subject = $"Thông báo: Đã được thêm vào môn {subjectName}";
+
+            email.Body = new TextPart(MimeKit.Text.TextFormat.Html)
+            {
+                Text = $@"<h3>Chào {fullName},</h3>
+                      <p>Bạn đã được thêm vào môn học <b>{subjectName}</b> trên hệ thống SmartEdu.</p>
+                      <p>Vui lòng đăng nhập để xem thông tin chi tiết và tài liệu liên quan.</p>"
+            };
+
+            using var smtp = new SmtpClient();
+            await smtp.ConnectAsync(_config["EmailSettings:Host"], int.Parse(_config["EmailSettings:Port"]), MailKit.Security.SecureSocketOptions.StartTls);
+            await smtp.AuthenticateAsync(_config["EmailSettings:User"], _config["EmailSettings:Pass"]);
+            await smtp.SendAsync(email);
+            await smtp.DisconnectAsync(true);
+        }
+    }
+}

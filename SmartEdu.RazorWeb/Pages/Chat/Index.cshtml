@@ -1,0 +1,232 @@
+@page
+@model SmartEdu.RazorWeb.Pages.Chat.IndexModel
+@{
+    ViewData["Title"] = "Chat";
+}
+
+<form id="antiForgeryForm" style="display:none">
+    @Html.AntiForgeryToken()
+</form>
+
+<div class="row">
+    <div class="col-md-3 border-end" style="height:80vh; overflow:auto;">
+        <div class="p-2">
+            <button id="btnNewChat" class="btn btn-outline-primary w-100 mb-2">+ New Chat</button>
+            <div id="sessionsList">
+                @foreach(var s in Model.Sessions)
+                {
+                    <div class="d-flex justify-content-between align-items-center session-item p-2 mb-1" data-sessionid="@s.SessionId" style="cursor:pointer;">
+                        <div>
+                            <div><strong>@(string.IsNullOrEmpty(s.Title) ? "(No title)" : s.Title)</strong></div>
+                            @if (!string.IsNullOrEmpty(s.SubjectName)) { <span class="badge bg-secondary">@s.SubjectName</span> }
+                        </div>
+                        <div>
+                            <button class="btn btn-sm btn-danger btn-delete-session" title="Delete" data-sessionid="@s.SessionId">🗑</button>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-9" style="height:80vh; display:flex; flex-direction:column;">
+        <div class="p-2 border-bottom">
+            <select id="subjectSelect" class="form-select w-auto">
+                <option value="">Tất cả</option>
+                @foreach(var sub in Model.Subjects)
+                {
+                    <option value="@sub.Id">@sub.Name</option>
+                }
+            </select>
+        </div>
+
+        <div id="chatWindow" class="p-3 flex-grow-1 overflow-auto" style="background:#f8f9fa;">
+            <div class="text-muted">Chọn hoặc bắt đầu một cuộc trò chuyện.</div>
+        </div>
+
+        <div class="p-2 border-top">
+            <textarea id="inputQuestion" class="form-control" rows="2" placeholder="Nhập câu hỏi... (Shift+Enter xuống dòng)"></textarea>
+            <div class="d-flex mt-2">
+                <button id="btnSend" class="btn btn-primary ms-auto">Gửi</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .bubble-user { background:#0d6efd; color:white; border-radius:12px; padding:8px 12px; max-width:70%; margin-left:auto; }
+    .bubble-assistant { background:#e9ecef; color:#212529; border-radius:12px; padding:8px 12px; max-width:70%; margin-right:auto; }
+    .message-row { margin-bottom:10px; display:flex; }
+    .message-meta { font-size:0.8rem; color:#6c757d; }
+    .session-item.active { background:#e9ecef; }
+</style>
+
+@section Scripts{
+    <script src="~/lib/microsoft/signalr/dist/browser/signalr.js"></script>
+    <script>
+        (function(){
+            const chatWindow = document.getElementById('chatWindow');
+            const btnNew = document.getElementById('btnNewChat');
+            const btnSend = document.getElementById('btnSend');
+            const input = document.getElementById('inputQuestion');
+            const sessionsList = document.getElementById('sessionsList');
+            const subjectSelect = document.getElementById('subjectSelect');
+
+            let activeSessionId = '';
+            let connection = null;
+
+            function setActiveSession(sessionId){
+                // leave previous
+                if(connection && activeSessionId){
+                    connection.invoke('LeaveSession', activeSessionId).catch(()=>{});
+                }
+                activeSessionId = sessionId;
+                // join new
+                if(connection && sessionId){
+                    connection.invoke('JoinSession', sessionId).catch(()=>{});
+                }
+                // highlight
+                document.querySelectorAll('.session-item').forEach(el=>{
+                    if(el.dataset.sessionid===sessionId) el.classList.add('active'); else el.classList.remove('active');
+                });
+            }
+
+            async function loadHistory(sessionId){
+                const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
+                const res = await fetch('?handler=LoadHistory', {
+                    method:'POST',
+                    headers:{ 'Content-Type':'application/json', 'RequestVerificationToken': token },
+                    body: JSON.stringify(sessionId)
+                });
+                const data = await res.json();
+                if(!data.success) return;
+                renderMessages(data.messages);
+            }
+
+            function renderMessages(messages){
+                chatWindow.innerHTML = '';
+                messages.forEach(m=>{
+                    const row = document.createElement('div'); row.className='message-row';
+                    const bubble = document.createElement('div');
+                    if(m.role==='user') { bubble.className='bubble-user'; row.style.justifyContent='flex-end'; }
+                    else { bubble.className='bubble-assistant'; row.style.justifyContent='flex-start'; }
+                    bubble.innerHTML = m.content.replace(/\n/g,'<br/>');
+                    row.appendChild(bubble);
+                    if(m.role!=='user' && m.sources && m.sources.length){
+                        const src = document.createElement('div'); src.className='message-meta'; src.innerText = 'Nguồn: ' + m.sources.join(', ');
+                        row.appendChild(src);
+                    }
+                    chatWindow.appendChild(row);
+                });
+                chatWindow.scrollTop = chatWindow.scrollHeight;
+            }
+
+            async function sendQuestion(){
+                const q = input.value.trim();
+                if(!q) return;
+                btnSend.disabled = true;
+                // optimistically show user message
+                appendLocalMessage('user', q);
+                // show typing indicator
+                const typingId = appendTypingIndicator();
+
+                const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
+                const body = { sessionId: activeSessionId || generateGuid(), question: q, subjectId: subjectSelect.value || null };
+
+                const res = await fetch('?handler=Ask', {
+                    method:'POST',
+                    headers:{ 'Content-Type':'application/json', 'RequestVerificationToken': token },
+                    body: JSON.stringify(body)
+                });
+                const data = await res.json();
+                removeTypingIndicator(typingId);
+                btnSend.disabled = false;
+                if(!data.success){
+                    appendLocalMessage('assistant', 'Có lỗi khi gọi chat: ' + (data.error || 'unknown'));
+                    return;
+                }
+
+                // if this was a new session, add to sidebar
+                if(!activeSessionId){
+                    addSessionToList({ sessionId: data.sessionId, title: q.length > 40 ? q.substring(0, 40) + '...' : q, subjectName: '' });
+                    setActiveSession(data.sessionId);
+                }
+
+                appendLocalMessage('assistant', data.answer, data.sources || []);
+                input.value = '';
+            }
+
+            function appendLocalMessage(role, content, sources){
+                const row = document.createElement('div'); row.className='message-row';
+                const bubble = document.createElement('div');
+                if(role==='user') { bubble.className='bubble-user'; row.style.justifyContent='flex-end'; }
+                else { bubble.className='bubble-assistant'; row.style.justifyContent='flex-start'; }
+                bubble.innerHTML = content.replace(/\n/g,'<br/>');
+                row.appendChild(bubble);
+                if(role!=='user' && sources && sources.length){
+                    const src = document.createElement('div'); src.className='message-meta'; src.innerText = 'Nguồn: ' + sources.join(', ');
+                    row.appendChild(src);
+                }
+                chatWindow.appendChild(row);
+                chatWindow.scrollTop = chatWindow.scrollHeight;
+            }
+
+            function appendTypingIndicator(){
+                const id = 'typing-'+Date.now();
+                const row = document.createElement('div'); row.className='message-row'; row.id = id; row.style.justifyContent='flex-start';
+                const bubble = document.createElement('div'); bubble.className='bubble-assistant'; bubble.innerHTML = '<span class="typing">●●●</span>';
+                row.appendChild(bubble);
+                chatWindow.appendChild(row);
+                chatWindow.scrollTop = chatWindow.scrollHeight;
+                return id;
+            }
+
+            function removeTypingIndicator(id){
+                const el = document.getElementById(id); if(el) el.remove();
+            }
+
+            function addSessionToList(s){
+                const div = document.createElement('div'); div.className='d-flex justify-content-between align-items-center session-item p-2 mb-1'; div.dataset.sessionid = s.sessionId; div.style.cursor='pointer';
+                div.innerHTML = `<div><div><strong>${s.title||'(No title)'}</strong></div>${s.subjectName?`<span class='badge bg-secondary'>${s.subjectName}</span>`:''}</div><div><button class='btn btn-sm btn-danger btn-delete-session' data-sessionid='${s.sessionId}'>🗑</button></div>`;
+                sessionsList.prepend(div);
+                attachSessionHandlers(div);
+            }
+
+            function attachSessionHandlers(el){
+                el.addEventListener('click', ()=>{ setActiveSession(el.dataset.sessionid); loadHistory(el.dataset.sessionid); });
+                const del = el.querySelector('.btn-delete-session'); if(del) del.addEventListener('click', async (e)=>{ e.stopPropagation(); if(!confirm('Xác nhận xóa session?')) return; const token = document.querySelector('input[name="__RequestVerificationToken"]').value; const res = await fetch('?handler=DeleteSession', { method:'POST', headers:{ 'Content-Type':'application/json', 'RequestVerificationToken': token }, body: JSON.stringify(el.dataset.sessionid) }); const d = await res.json(); if(d.success){ el.remove(); if(activeSessionId===el.dataset.sessionid){ activeSessionId=''; chatWindow.innerHTML='Chọn hoặc bắt đầu một cuộc trò chuyện.'; } } });
+            }
+
+            function generateGuid(){ return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) { var r = Math.random()*16|0, v = c=='x'? r : (r&0x3|0x8); return v.toString(16); }); }
+
+            // attach handlers for existing session items
+            document.querySelectorAll('.session-item').forEach(el=> attachSessionHandlers(el));
+
+            btnNew.addEventListener('click', ()=>{ activeSessionId=''; document.querySelectorAll('.session-item').forEach(x=>x.classList.remove('active')); chatWindow.innerHTML = '<div class="text-muted">Bắt đầu cuộc trò chuyện mới.</div>'; input.focus(); });
+            btnSend.addEventListener('click', sendQuestion);
+            input.addEventListener('keydown', function(e){ if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); sendQuestion(); } });
+
+            // Setup SignalR
+            connection = new signalR.HubConnectionBuilder()
+                .withUrl('/chatHub')
+                .withAutomaticReconnect()
+                .build();
+
+            connection.on('ReceiveAnswer', function(answer){
+                // The notification contains an answer string — it may be used to update UI in other tabs
+                // TODO: if payload includes sessionId and sources, adjust accordingly
+                appendLocalMessage('assistant', answer);
+            });
+
+            connection.on('TitleUpdated', function(sessionId, newTitle){
+                const el = document.querySelector('.session-item[data-sessionid="' + sessionId + '"]');
+                if (el) {
+                const titleEl = el.querySelector('strong');
+                if (titleEl) titleEl.innerText = newTitle;
+                }
+            });
+
+            connection.start().catch(err=>console.error(err.toString()));
+        })();
+    </script>
+}

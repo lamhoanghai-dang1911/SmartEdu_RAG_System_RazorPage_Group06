@@ -1,0 +1,254 @@
+@page
+@model SmartEdu.RazorWeb.Pages.Documents.UploadDocumentModel
+@{
+    ViewData["Title"] = "Upload Document";
+}
+
+<h2>Upload Document</h2>
+
+<form method="get" class="mb-3">
+    <label>Select subject</label>
+    <select name="SubjectId" class="form-select" onchange="this.form.submit()">
+        <option value="">-- Select subject --</option>
+        @foreach (var s in Model.Subjects)
+        {
+            <option value="@s.Id" selected="@(Model.SubjectId == s.Id)">@s.Name</option>
+        }
+    </select>
+</form>
+
+@if (!Model.SubjectId.HasValue)
+{
+    <div class="alert alert-info">Select a subject to upload documents (only leader can upload).</div>
+}
+else
+{
+    @if (Model.IsLeader)
+    {
+        <form method="post" enctype="multipart/form-data" asp-page-handler="Upload">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="SubjectId" value="@Model.SubjectId" />
+            <div class="mb-3">
+                <label class="form-label">Title</label>
+                <input class="form-control" asp-for="Title" />
+            </div>
+            <div class="mb-3">
+                <label class="form-label">File (PDF or DOCX)</label>
+                <input type="file" name="File" class="form-control" />
+            </div>
+            <button class="btn btn-primary">Upload</button>
+        </form>
+
+        <h3 class="mt-4">Documents</h3>
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Title</th>
+                    <th>File</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var d in Model.Documents)
+                {
+                    var statusClass = d.Status switch
+                    {
+                        SmartEdu.Shared.Enums.DocumentStatus.Ready => "bg-success text-white",
+                        SmartEdu.Shared.Enums.DocumentStatus.Failed => "bg-danger text-white",
+                        SmartEdu.Shared.Enums.DocumentStatus.Processing => "bg-primary text-white",
+                        _ => "bg-warning text-dark"
+                    };
+                    <tr id="doc-row-@d.Id">
+                        <td>
+                            <span class="doc-title">@d.Title</span>
+                            <span class="badge @statusClass ms-2 doc-status" id="doc-status-@d.Id">@d.Status.ToString()</span>
+                            <span class="ms-2 text-muted processing-text" id="processing-text-@d.Id" style="display:none">Đang xử lý...</span>
+                        </td>
+                        <td>@d.FileName</td>
+                        <td>
+                            <button type="button" class="btn btn-sm btn-success trigger-btn"
+                                    data-docid="@d.Id"
+                                    disabled="@(d.Status == SmartEdu.Shared.Enums.DocumentStatus.Ready ? "disabled" : null)">
+                                Kích hoạt Embedding
+                            </button>
+
+                            <a class="btn btn-sm btn-secondary" asp-page="/Documents/UploadDocument" asp-route-handler="Download" asp-route-id="@d.Id">Download</a>
+
+                            <form method="post" asp-page-handler="Delete" class="d-inline">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="id" value="@d.Id" />
+                                <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+                            </form>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+
+        <div id="document-progress" class="mt-4" style="display:none">
+            <h4>Processing progress</h4>
+            <div class="progress">
+                <div id="global-progress-bar" class="progress-bar" role="progressbar" style="width:0%">0%</div>
+            </div>
+            <div id="log"></div>
+        </div>
+        <div style="display:none">@Html.AntiForgeryToken()</div>
+    }
+    else if (!string.IsNullOrEmpty(Model.AccessDeniedMessage))
+    {
+        <div class="alert alert-warning">@Model.AccessDeniedMessage</div>
+    }
+}
+
+@section Scripts {
+    <!-- signalr script already loaded in layout via CDN; avoid duplicate local include to prevent 404 -->
+    <script>
+        (function () {
+            const subjectId = '@Model.SubjectId';
+            // Chỉ cần 1 connection duy nhất vào SubjectHub
+            const conn = new signalR.HubConnectionBuilder()
+                .withUrl('/subjectHub')
+                .withAutomaticReconnect()
+                .build();
+
+            function safeGet(id) { return document.getElementById(id); }
+
+            function statusClassFor(status) {
+                switch (status) {
+                    case 'Ready': return 'bg-success text-white';
+                    case 'Failed': return 'bg-danger text-white';
+                    case 'Processing': return 'bg-primary text-white';
+                    default: return 'bg-warning text-dark';
+                }
+            }
+
+            window.triggerEmbedding = async function (documentId, btn) {
+                try {
+                    if (btn) btn.disabled = true;
+                    const procText = safeGet('processing-text-' + documentId);
+                    if (procText) procText.style.display = '';
+
+                    // Hiện khu vực progress khi bắt đầu trigger
+                    const progressArea = safeGet('document-progress');
+                    if (progressArea) progressArea.style.display = '';
+
+                    const global = safeGet('global-progress-bar');
+                    if (global) { global.style.width = '0%'; global.innerText = '0%'; }
+
+                    const log = safeGet('log');
+                    if (log) log.innerHTML = '';
+
+                    const tokenEl = document.querySelector('input[name="__RequestVerificationToken"]');
+                    const token = tokenEl ? tokenEl.value : '';
+                    const form = new FormData();
+                    form.append('__RequestVerificationToken', token);
+                    form.append('documentId', documentId);
+
+                    const resp = await fetch('?handler=TriggerEmbedding', {
+                        method: 'POST',
+                        body: form,
+                        credentials: 'same-origin'
+                    });
+
+                    if (!resp.ok) {
+                        alert('Failed to start embedding');
+                        if (btn) btn.disabled = false;
+                        if (procText) procText.style.display = 'none';
+                        return;
+                    }
+
+                    const j = await resp.json().catch(() => null);
+                    if (!j || !j.success) {
+                        alert('Failed to start embedding');
+                        if (btn) btn.disabled = false;
+                        if (procText) procText.style.display = 'none';
+                    }
+                } catch (err) {
+                    console.error(err);
+                    alert('Failed to start embedding');
+                    if (btn) btn.disabled = false;
+                    const procText = safeGet('processing-text-' + documentId);
+                    if (procText) procText.style.display = 'none';
+                }
+            };
+
+            // Tất cả event giờ nhận qua conn (SubjectHub)
+            conn.on('DocumentProgress', function (documentId, currentChunk, totalChunks) {
+                const pct = Math.round((currentChunk / totalChunks) * 100);
+                const global = safeGet('global-progress-bar');
+                if (global) { global.style.width = pct + '%'; global.innerText = pct + '%'; }
+                const statusBadge = safeGet('doc-status-' + documentId);
+                if (statusBadge) {
+                    statusBadge.innerText = 'Processing';
+                    statusBadge.className = 'badge ' + statusClassFor('Processing') + ' ms-2 doc-status';
+                }
+                const procText = safeGet('processing-text-' + documentId);
+                if (procText) procText.style.display = '';
+                const btn = document.querySelector('.trigger-btn[data-docid="' + documentId + '"]');
+                if (btn) btn.disabled = true;
+            });
+
+            conn.on('ChunkLogCreated', function (documentId, chunkIndex, totalChunks, content) {
+                const log = safeGet('log');
+                if (!log) return;
+                const div = document.createElement('div');
+                div.className = 'chunk-log-item mb-2 p-2 border rounded';
+                div.innerHTML = `
+                    <strong>Chunk ${chunkIndex + 1}/${totalChunks}</strong>
+                    <p class="mb-0 text-muted small">${content.length > 200 ? content.substring(0, 200) + '...' : content}</p>
+                `;
+                log.appendChild(div);
+            });
+
+            conn.on('DocumentCompleted', function (documentId) {
+                const global = safeGet('global-progress-bar');
+                if (global) { global.style.width = '100%'; global.innerText = '100%'; }
+                const statusBadge = safeGet('doc-status-' + documentId);
+                if (statusBadge) {
+                    statusBadge.innerText = 'Ready';
+                    statusBadge.className = 'badge ' + statusClassFor('Ready') + ' ms-2 doc-status';
+                }
+                const procText = safeGet('processing-text-' + documentId);
+                if (procText) procText.style.display = 'none';
+                const btn = document.querySelector('.trigger-btn[data-docid="' + documentId + '"]');
+                if (btn) btn.disabled = true;
+            });
+
+            conn.on('DocumentFailed', function (documentId, error) {
+                const statusBadge = safeGet('doc-status-' + documentId);
+                if (statusBadge) {
+                    statusBadge.innerText = 'Failed';
+                    statusBadge.className = 'badge ' + statusClassFor('Failed') + ' ms-2 doc-status';
+                }
+                const procText = safeGet('processing-text-' + documentId);
+                if (procText) procText.style.display = 'none';
+                const btn = document.querySelector('.trigger-btn[data-docid="' + documentId + '"]');
+                if (btn) btn.disabled = false;
+                console.error('Embedding failed: ' + error);
+            });
+
+            conn.onreconnected(() => location.reload());
+
+            conn.start()
+                .then(() => {
+                    console.log('SubjectHub connected');
+                    if (subjectId) {
+                        conn.invoke('JoinSubjectGroup', subjectId.toString())
+                            .then(() => console.debug('Joined subject group', subjectId))
+                            .catch(e => console.error('JoinSubjectGroup failed', e));
+                    }
+
+                    document.querySelectorAll('.trigger-btn').forEach(btn => {
+                        btn.addEventListener('click', function () {
+                            if (btn.disabled) return;
+                            const id = btn.getAttribute('data-docid');
+                            if (!id) return;
+                            window.triggerEmbedding(Number(id), btn);
+                            btn.disabled = true;
+                        });
+                    });
+                })
+                .catch(e => console.error('Hub connection failed', e));
+        })();
+    </script>
+}

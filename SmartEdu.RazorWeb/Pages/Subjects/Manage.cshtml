@@ -1,0 +1,115 @@
+@page
+@model SmartEdu.RazorWeb.Pages.Subjects.ManageModel
+@{
+    ViewData["Title"] = "Manage Subject";
+}
+
+<h2>Manage Subject</h2>
+<input type="hidden" asp-for="SubjectId" />
+
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        @TempData["ErrorMessage"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        @TempData["SuccessMessage"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+<div class="row">
+    <div class="col-md-6">
+        <h4>Assigned Lecturers</h4>
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Username</th>
+                    <th>Leader</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var l in Model.AssignedLecturers)
+                {
+                    <tr>
+                        <td>@l.FullName</td>
+                        <td>@l.Username</td>
+                        <td>
+                            @if (l.IsLeader)
+                            {
+                                <span class="text-success"><i class="bi bi-check-lg"></i> <strong>Leader</strong></span>
+                            }
+                            else
+                            {
+                                <span class="text-muted">-</span>
+                            }
+                        </td>
+                        <td>
+                            @* Only show Set Leader when this lecturer is not leader AND subject has no leader *@
+                            @if (!l.IsLeader && !Model.HasLeader)
+                            {
+                                <form method="post" asp-page-handler="AssignLecturer" class="d-inline">
+                                    <input type="hidden" name="lecturerId" value="@l.Id" />
+                                    <input type="hidden" name="SubjectId" value="@Model.SubjectId" />
+                                    <input type="hidden" name="isLeader" value="true" />
+                                    <button class="btn btn-sm btn-primary">Set Leader</button>
+                                </form>
+                            }
+
+                            <form method="post" asp-page-handler="RemoveLecturer" class="d-inline ms-2">
+                                <input type="hidden" name="lecturerId" value="@l.Id" />
+                                <input type="hidden" name="SubjectId" value="@Model.SubjectId" />
+                                <button class="btn btn-sm btn-danger">Remove</button>
+                            </form>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    <div class="col-md-6">
+        <h4>Available Lecturers</h4>
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Username</th>
+                    <th>Assign</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var l in Model.NotAssignedLecturers)
+                {
+                    <tr>
+                        <td>@l.FullName</td>
+                        <td>@l.Username</td>
+                        <td>
+                            <form method="post" asp-page-handler="AssignLecturer" class="d-inline">
+                                <input type="hidden" name="lecturerId" value="@l.Id" />
+                                <input type="hidden" name="SubjectId" value="@Model.SubjectId" />
+                                <input type="hidden" name="isLeader" value="false" />
+                                <button class="btn btn-sm btn-primary">Assign</button>
+                            </form>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<hr />
+<h4>Import Students (Excel)</h4>
+<form method="post" enctype="multipart/form-data" asp-page-handler="ImportStudents">
+    <input type="hidden" name="SubjectId" value="@Model.SubjectId" />
+    <input type="file" name="file" accept=".xlsx,.xls" />
+    <button class="btn btn-primary">Import</button>
+</form>

@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="SmartEdu.Business/SmartEdu.Business.csproj" Id="95cece58-9fd3-41c5-85a2-eca277979093" />
+  <Project Path="SmartEdu.DataAccess/SmartEdu.DataAccess.csproj" Id="839f3512-b45b-4be0-bac2-822f63aef536" />
+  <Project Path="SmartEdu.RazorWeb/SmartEdu.RazorWeb.csproj" />
+  <Project Path="SmartEdu.Shared/SmartEdu.Shared.csproj" Id="f0914c5f-ac96-4d88-96b9-c67d287231a9" />
+</Solution>

@@ -1,0 +1,107 @@
+@page
+@model SmartEdu.RazorWeb.Pages.Documents.MyDocumentsModel
+@{
+    ViewData["Title"] = "My Documents";
+}
+
+<h2>My Documents</h2>
+
+<div class="row mb-3">
+    <div class="col-md-4">
+        <label class="form-label">Subject</label>
+        <select id="subjectFilter" class="form-select">
+            <option value="">Tất cả</option>
+            @foreach (var s in Model.Subjects)
+            {
+                <option value="@s.Id">@s.Name</option>
+            }
+        </select>
+    </div>
+    <div class="col-md-4">
+        <label class="form-label">Search</label>
+        <input id="searchBox" class="form-control" placeholder="Search by title..." />
+    </div>
+</div>
+
+<table class="table table-striped" id="docsTable">
+    <thead>
+        <tr>
+            <th>Title</th>
+            <th>Subject</th>
+            <th>File</th>
+            <th>Type</th>
+            <th>Size</th>
+            <th>Created</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody id="docsBody">
+        @foreach (var d in Model.Documents)
+        {
+            <tr>
+                <td class="doc-title">@d.Title</td>
+                <td><span class="badge bg-primary">@d.SubjectName</span></td>
+                <td>@d.FileName</td>
+                <td>@(d.FileType?.ToUpper() ?? "")</td>
+                <td>@SmartEdu.RazorWeb.Pages.Documents.MyDocumentsModel.FormatFileSize(d.FileSize)</td>
+                <td>@d.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy")</td>
+                <td>
+                    <a class="btn btn-sm btn-secondary" asp-page="/Documents/MyDocuments" asp-route-handler="Download" asp-route-id="@d.Id">Download</a>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+@section Scripts {
+    <script>
+        (function () {
+            const subjectEl = document.getElementById('subjectFilter');
+            const searchEl = document.getElementById('searchBox');
+            const docsBody = document.getElementById('docsBody');
+
+            async function loadBySubject(subjectId) {
+                const url = '?handler=Filter' + (subjectId ? '&subjectId=' + subjectId : '');
+                const resp = await fetch(url, { credentials: 'same-origin' });
+                if (!resp.ok) return;
+                const data = await resp.json();
+                renderRows(data);
+            }
+
+            function renderRows(items) {
+                docsBody.innerHTML = '';
+                items.forEach(i => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td class="doc-title">${escapeHtml(i.title)}</td>
+                        <td><span class="badge bg-primary">${escapeHtml(i.subjectName ?? '')}</span></td>
+                        <td>${escapeHtml(i.fileName ?? '')}</td>
+                        <td>${escapeHtml(i.fileType ?? '')}</td>
+                        <td>${escapeHtml(i.fileSize ?? '')}</td>
+                        <td>${escapeHtml(i.createdAt ?? '')}</td>
+                        <td><a class="btn btn-sm btn-secondary" href="?handler=Download&id=${i.id}">Download</a></td>
+                    `;
+                    docsBody.appendChild(tr);
+                });
+            }
+
+            function escapeHtml(s) {
+                if (!s) return '';
+                return s.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;');
+            }
+
+            subjectEl.addEventListener('change', function () {
+                loadBySubject(this.value);
+            });
+
+            searchEl.addEventListener('input', function () {
+                const q = this.value.toLowerCase();
+                document.querySelectorAll('#docsBody tr').forEach(tr => {
+                    const title = tr.querySelector('.doc-title')?.innerText.toLowerCase() ?? '';
+                    tr.style.display = title.includes(q) ? '' : 'none';
+                });
+            });
+
+        })();
+    </script>
+}

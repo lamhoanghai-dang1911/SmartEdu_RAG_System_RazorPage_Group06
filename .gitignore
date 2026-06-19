@@ -1,0 +1,13 @@
+# Visual Studio files
+.vs/
+*.user
+*.suo
+bin/
+obj/
+
+# User secrets & config
+secrets.json
+appsettings.Development.json
+
+# User uploads
+wwwroot/uploads/

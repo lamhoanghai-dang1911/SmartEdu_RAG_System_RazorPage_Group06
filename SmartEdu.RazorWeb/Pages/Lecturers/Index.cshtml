@@ -1,0 +1,139 @@
+@page
+@model SmartEdu.RazorWeb.Pages.Lecturers.IndexModel
+@{
+    ViewData["Title"] = "Lecturers";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h2>Lecturers</h2>
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createModal">Create New</button>
+</div>
+
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success">@TempData["SuccessMessage"]</div>
+}
+
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>Username</th>
+            <th>Full name</th>
+            <th>Email</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var l in Model.Lecturers)
+        {
+            <tr>
+                <td>@l.Username</td>
+                <td>@l.FullName</td>
+                <td>@l.Email</td>
+                <td>
+                    <button class="btn btn-sm btn-outline-secondary me-2" data-bs-toggle="modal" data-bs-target="#editModal" data-id="@l.Id" data-username="@l.Username" data-fullname="@l.FullName" data-email="@l.Email">Update</button>
+                    <form method="post" asp-page-handler="Delete" class="d-inline">
+                        <input type="hidden" name="id" value="@l.Id" />
+                        <button class="btn btn-sm btn-danger">Delete</button>
+                    </form>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+@* Create Modal *@
+<div class="modal fade" id="createModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post" asp-page-handler="Create">
+                @Html.AntiForgeryToken()
+                <div class="modal-header">
+                    <h5 class="modal-title">Create Lecturer</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Username</label>
+                        <input class="form-control" asp-for="NewLecturer.Username" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Full name</label>
+                        <input class="form-control" asp-for="NewLecturer.FullName" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Password</label>
+                        <input class="form-control" asp-for="NewLecturer.Password" />
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-primary">Create</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@if (ViewData["OpenCreateModal"] as string == "true")
+{
+    <script>
+        var createModal = new bootstrap.Modal(document.getElementById('createModal'));
+        createModal.show();
+    </script>
+}
+
+@* Edit Modal *@
+<div class="modal fade" id="editModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post" asp-page-handler="Update">
+                @Html.AntiForgeryToken()
+                <div class="modal-header">
+                    <h5 class="modal-title">Edit Lecturer</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" asp-for="EditLecturer.Id" id="edit-id" name="EditLecturer.Id" />
+                    <div class="mb-3">
+                        <label class="form-label">Full name</label>
+                        <input class="form-control" asp-for="EditLecturer.FullName" id="edit-fullname" name="EditLecturer.FullName" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Email</label>
+                        <input class="form-control" asp-for="EditLecturer.Email" id="edit-email" name="EditLecturer.Email" />
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button class="btn btn-primary">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        var editModal = document.getElementById('editModal')
+        editModal.addEventListener('show.bs.modal', function (event) {
+            var button = event.relatedTarget
+            var id = button.getAttribute('data-id')
+            var username = button.getAttribute('data-username')
+            var fullname = button.getAttribute('data-fullname')
+            var email = button.getAttribute('data-email')
+
+            document.getElementById('edit-id').value = id
+            document.getElementById('edit-fullname').value = fullname
+            document.getElementById('edit-email').value = email
+        })
+    </script>
+}
+
+@if (ViewData["OpenEditModal"] as string == "true")
+{
+    <script>
+        var editModal = new bootstrap.Modal(document.getElementById('editModal'));
+        editModal.show();
+    </script>
+}
