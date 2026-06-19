@@ -31,21 +31,10 @@ namespace SmartEdu.RazorWeb.Services
                 "DocumentFailed", documentId, error);
         }
 
-        public async Task LogCreated(int documentId, string message, string status, int subjectId)
-        {
-            await _hub.Clients.Group(subjectId.ToString()).SendAsync(
-                "DocumentLog", documentId, message, status);
-        }
-
         public async Task ProcessingStarted(int documentId, int subjectId)
         {
             await _hub.Clients.Group(subjectId.ToString()).SendAsync(
                 "DocumentStarted", documentId);
-        }
-
-        public async Task BroadcastLog(int documentId, string message, string status)
-        {
-            await _hub.Clients.All.SendAsync("DocumentLog", documentId, message, status);
         }
 
         public async Task ChunkLogCreated(int documentId, int chunkIndex, int totalChunks, string content, int subjectId)

@@ -26,6 +26,11 @@ namespace SmartEdu.RazorWeb.Services
                 );
         }
 
+        public async Task SendSessionCreatedAsync(int userId, string sessionId, string title, string? subjectName)
+        {
+            await _hub.Clients.All.SendAsync("SessionCreated", userId, sessionId, title, subjectName);
+        }
+
         public async Task SendTitleUpdatedAsync(string sessionId, string newTitle)
         {
             await _hub.Clients.Group(sessionId).SendAsync("TitleUpdated", sessionId, newTitle);

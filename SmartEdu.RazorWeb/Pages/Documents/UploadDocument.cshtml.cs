@@ -37,17 +37,27 @@ namespace SmartEdu.RazorWeb.Pages.Documents
                 var userId = HttpContext.Session.GetInt32("UserId");
                 if (!userId.HasValue) return RedirectToPage("/Account/Login");
 
-                var can = await _subjectService.CanUploadDocument(userId.Value, SubjectId.Value);
-                IsLeader = can;
-                if (!can)
+                var isLeader = await _subjectService.CanUploadDocument(userId.Value, SubjectId.Value);
+                IsLeader = isLeader;
+                if (isLeader)
                 {
-                    AccessDeniedMessage = "Bạn không có quyền upload tài liệu cho môn này. Chỉ Leader mới được phép.";
-                    // still show existing documents, but disallow upload/trigger actions in the UI
-                    Documents = new List<DocumentDto>();
+                    Documents = await _documentService.GetAllAsync(SubjectId);
                 }
                 else
                 {
-                    Documents = await _documentService.GetAllAsync(SubjectId);
+                    // If not leader, allow assigned (but non-leader) lecturers to view/download documents.
+                    var assignedSubjects = await _subjectService.GetSubjectsByLecturerIdAsync(userId.Value);
+                    var isAssigned = assignedSubjects.Any(s => s.Id == SubjectId.Value);
+                    if (isAssigned)
+                    {
+                        Documents = await _documentService.GetAllAsync(SubjectId);
+                        AccessDeniedMessage = "Bạn không có quyền upload/tác vụ khác; bạn chỉ có quyền xem tài liệu.";
+                    }
+                    else
+                    {
+                        AccessDeniedMessage = "Bạn không có quyền xem tài liệu cho môn này.";
+                        Documents = new List<DocumentDto>();
+                    }
                 }
             }
 
@@ -150,14 +160,24 @@ namespace SmartEdu.RazorWeb.Pages.Documents
 
             var userId = HttpContext.Session.GetInt32("UserId");
             if (!userId.HasValue) return RedirectToPage("/Account/Login");
-
-            var can = await _subjectService.CanUploadDocument(userId.Value, doc.SubjectId);
-            if (!can) return Forbid();
+            var isLeader = await _subjectService.CanUploadDocument(userId.Value, doc.SubjectId);
+            if (!isLeader)
+            {
+                var assignedSubjects = await _subjectService.GetSubjectsByLecturerIdAsync(userId.Value);
+                var isAssigned = assignedSubjects.Any(s => s.Id == doc.SubjectId);
+                if (!isAssigned) return Forbid();
+            }
 
             var file = await _documentService.GetFileForDownloadAsync(id);
             if (file == null) return NotFound();
 
             return PhysicalFile(file.FilePath, file.ContentType ?? "application/octet-stream", file.FileName);
+        }
+
+        public async Task<IActionResult> OnGetSubjectsAsync()
+        {
+            var subjects = await _subjectService.GetAllAsync();
+            return new JsonResult(subjects.Select(s => new { id = s.Id, name = s.Name }));
         }
     }
 }

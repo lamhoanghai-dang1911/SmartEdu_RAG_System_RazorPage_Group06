@@ -15,33 +15,7 @@ namespace SmartEdu.RazorWeb.Services
             _hub = hub;
         }
 
-        public async Task SubjectCreated(
-            int subjectId,
-            string subjectName)
-        {
-            await _hub.Clients.All.SendAsync(
-                "SubjectCreated",
-                subjectId,
-                subjectName);
-        }
-
-        public async Task SubjectUpdated(
-            int subjectId,
-            string subjectName)
-        {
-            await _hub.Clients.All.SendAsync(
-                "SubjectUpdated",
-                subjectId,
-                subjectName);
-        }
-
-        public async Task SubjectDeleted(
-            int subjectId)
-        {
-            await _hub.Clients.All.SendAsync(
-                "SubjectDeleted",
-                subjectId);
-        }
+        // SubjectCreated/SubjectUpdated/SubjectDeleted removed: replaced by SubjectListChanged for simplicity
 
         public async Task StudentAssigned(
             int subjectId,
@@ -85,6 +59,11 @@ namespace SmartEdu.RazorWeb.Services
                 .SendAsync(
                     "ImportCompleted",
                     totalStudents);
+        }
+
+        public async Task SubjectListChanged()
+        {
+            await _hub.Clients.All.SendAsync("SubjectListChanged");
         }
     }
 }

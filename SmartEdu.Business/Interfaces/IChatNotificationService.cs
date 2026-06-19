@@ -10,5 +10,6 @@ namespace SmartEdu.Business.Interfaces
     {
         Task SendAnswerAsync(string sessionId, string answer);
         Task SendTitleUpdatedAsync(string sessionId, string newTitle);
+        Task SendSessionCreatedAsync(int userId, string sessionId, string title, string? subjectName);
     }
 }

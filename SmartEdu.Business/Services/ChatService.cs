@@ -59,6 +59,12 @@ namespace SmartEdu.Business.Services
                 };
                 await _sessionRepo.AddAsync(session);
                 await _sessionRepo.SaveChangesAsync();
+                string? subjectName = null;
+                if (session.SubjectId.HasValue)
+                {
+                    // Lấy tên subject nếu cần hiển thị badge - có thể bỏ qua nếu muốn đơn giản
+                }
+                await _notification.SendSessionCreatedAsync(request.UserId, session.SessionId, session.Title, subjectName);
             }
             else if (session.UserId != request.UserId)
             {

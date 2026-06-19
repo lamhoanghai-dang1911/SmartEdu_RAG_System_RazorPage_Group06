@@ -213,7 +213,7 @@ namespace SmartEdu.Business.Services
                 _logger?.LogInformation("Adding subject to DbContext: {Name}", subject.Name);
                 await _repo.SaveChangesAsync();
                 _logger?.LogInformation("Subject saved with Id {Id}", subject.Id);
-                await _notification.SubjectCreated(subject.Id, subject.Name);
+                // SubjectCreated notification removed; SubjectListChanged is used by UI handlers instead
             }
             catch (Exception ex)
             {
@@ -238,7 +238,7 @@ namespace SmartEdu.Business.Services
                 _logger?.LogInformation("Updating subject Id {Id}", existingSubject.Id);
                 await _repo.SaveChangesAsync();
                 _logger?.LogInformation("Subject updated Id {Id}", existingSubject.Id);
-                await _notification.SubjectUpdated(existingSubject.Id, existingSubject.Name);
+                // SubjectUpdated notification removed; SubjectListChanged is used by UI handlers instead
             }
             catch (Exception ex)
             {
@@ -261,7 +261,7 @@ namespace SmartEdu.Business.Services
                 _logger?.LogInformation("Marking subject Id {Id} as deleted", id);
                 await _repo.SaveChangesAsync();
                 _logger?.LogInformation("Subject deleted Id {Id}", id);
-                await _notification.SubjectDeleted(id);
+                // SubjectDeleted notification removed; SubjectListChanged is used by UI handlers instead
             }
             catch (Exception ex)
             {

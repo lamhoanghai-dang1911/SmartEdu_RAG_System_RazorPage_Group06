@@ -23,6 +23,11 @@
 }
 else
 {
+    @if (!string.IsNullOrEmpty(Model.AccessDeniedMessage))
+    {
+        <div class="alert alert-warning">@Model.AccessDeniedMessage</div>
+    }
+
     @if (Model.IsLeader)
     {
         <form method="post" enctype="multipart/form-data" asp-page-handler="Upload">
@@ -38,7 +43,10 @@ else
             </div>
             <button class="btn btn-primary">Upload</button>
         </form>
+    }
 
+    @if (Model.IsLeader || Model.Documents.Any())
+    {
         <h3 class="mt-4">Documents</h3>
         <table class="table">
             <thead>
@@ -68,35 +76,42 @@ else
                         <td>
                             <button type="button" class="btn btn-sm btn-success trigger-btn"
                                     data-docid="@d.Id"
-                                    disabled="@(d.Status == SmartEdu.Shared.Enums.DocumentStatus.Ready ? "disabled" : null)">
+                                    disabled="@(!Model.IsLeader || d.Status == SmartEdu.Shared.Enums.DocumentStatus.Ready ? "disabled" : null)">
                                 Kích hoạt Embedding
                             </button>
 
                             <a class="btn btn-sm btn-secondary" asp-page="/Documents/UploadDocument" asp-route-handler="Download" asp-route-id="@d.Id">Download</a>
 
-                            <form method="post" asp-page-handler="Delete" class="d-inline">
-                                @Html.AntiForgeryToken()
-                                <input type="hidden" name="id" value="@d.Id" />
-                                <button type="submit" class="btn btn-sm btn-danger">Delete</button>
-                            </form>
+                            @if (Model.IsLeader)
+                            {
+                                <form method="post" asp-page-handler="Delete" class="d-inline">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="id" value="@d.Id" />
+                                    <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+                                </form>
+                            }
+                            else
+                            {
+                                <button type="button" class="btn btn-sm btn-danger" disabled>Delete</button>
+                            }
                         </td>
                     </tr>
                 }
             </tbody>
         </table>
 
-        <div id="document-progress" class="mt-4" style="display:none">
-            <h4>Processing progress</h4>
-            <div class="progress">
-                <div id="global-progress-bar" class="progress-bar" role="progressbar" style="width:0%">0%</div>
+        @if (Model.IsLeader)
+        {
+            <div id="document-progress" class="mt-4" style="display:none">
+                <h4>Processing progress</h4>
+                <div class="progress">
+                    <div id="global-progress-bar" class="progress-bar" role="progressbar" style="width:0%">0%</div>
+                </div>
+                <div id="log"></div>
             </div>
-            <div id="log"></div>
-        </div>
+        }
+
         <div style="display:none">@Html.AntiForgeryToken()</div>
-    }
-    else if (!string.IsNullOrEmpty(Model.AccessDeniedMessage))
-    {
-        <div class="alert alert-warning">@Model.AccessDeniedMessage</div>
     }
 }
 
@@ -105,7 +120,7 @@ else
     <script>
         (function () {
             const subjectId = '@Model.SubjectId';
-            // Chỉ cần 1 connection duy nhất vào SubjectHub
+            const isLeader = @(Model.IsLeader ? "true" : "false");
             const conn = new signalR.HubConnectionBuilder()
                 .withUrl('/subjectHub')
                 .withAutomaticReconnect()
@@ -123,12 +138,12 @@ else
             }
 
             window.triggerEmbedding = async function (documentId, btn) {
+                if (!isLeader) return; // chỉ Leader được trigger
                 try {
                     if (btn) btn.disabled = true;
                     const procText = safeGet('processing-text-' + documentId);
                     if (procText) procText.style.display = '';
 
-                    // Hiện khu vực progress khi bắt đầu trigger
                     const progressArea = safeGet('document-progress');
                     if (progressArea) progressArea.style.display = '';
 
@@ -172,7 +187,6 @@ else
                 }
             };
 
-            // Tất cả event giờ nhận qua conn (SubjectHub)
             conn.on('DocumentProgress', function (documentId, currentChunk, totalChunks) {
                 const pct = Math.round((currentChunk / totalChunks) * 100);
                 const global = safeGet('global-progress-bar');
@@ -184,8 +198,10 @@ else
                 }
                 const procText = safeGet('processing-text-' + documentId);
                 if (procText) procText.style.display = '';
-                const btn = document.querySelector('.trigger-btn[data-docid="' + documentId + '"]');
-                if (btn) btn.disabled = true;
+                if (isLeader) {
+                    const btn = document.querySelector('.trigger-btn[data-docid="' + documentId + '"]');
+                    if (btn) btn.disabled = true;
+                }
             });
 
             conn.on('ChunkLogCreated', function (documentId, chunkIndex, totalChunks, content) {
@@ -222,9 +238,32 @@ else
                 }
                 const procText = safeGet('processing-text-' + documentId);
                 if (procText) procText.style.display = 'none';
-                const btn = document.querySelector('.trigger-btn[data-docid="' + documentId + '"]');
-                if (btn) btn.disabled = false;
+                if (isLeader) {
+                    const btn = document.querySelector('.trigger-btn[data-docid="' + documentId + '"]');
+                    if (btn) btn.disabled = false;
+                }
                 console.error('Embedding failed: ' + error);
+            });
+
+            conn.on('SubjectListChanged', async function () {
+                try {
+                    const res = await fetch('?handler=Subjects', { credentials: 'same-origin' });
+                    const subjects = await res.json();
+                    const select = document.querySelector('select[name="SubjectId"]');
+                    if (!select) return;
+
+                    const currentValue = select.value;
+                    select.innerHTML = '<option value="">-- Select subject --</option>';
+                    subjects.forEach(s => {
+                        const opt = document.createElement('option');
+                        opt.value = s.id;
+                        opt.text = s.name;
+                        if (String(s.id) === currentValue) opt.selected = true;
+                        select.appendChild(opt);
+                    });
+                } catch (e) {
+                    console.error('Failed to refresh subjects', e);
+                }
             });
 
             conn.onreconnected(() => location.reload());
@@ -238,15 +277,17 @@ else
                             .catch(e => console.error('JoinSubjectGroup failed', e));
                     }
 
-                    document.querySelectorAll('.trigger-btn').forEach(btn => {
-                        btn.addEventListener('click', function () {
-                            if (btn.disabled) return;
-                            const id = btn.getAttribute('data-docid');
-                            if (!id) return;
-                            window.triggerEmbedding(Number(id), btn);
-                            btn.disabled = true;
+                    if (isLeader) {
+                        document.querySelectorAll('.trigger-btn').forEach(btn => {
+                            btn.addEventListener('click', function () {
+                                if (btn.disabled) return;
+                                const id = btn.getAttribute('data-docid');
+                                if (!id) return;
+                                window.triggerEmbedding(Number(id), btn);
+                                btn.disabled = true;
+                            });
                         });
-                    });
+                    }
                 })
                 .catch(e => console.error('Hub connection failed', e));
         })();

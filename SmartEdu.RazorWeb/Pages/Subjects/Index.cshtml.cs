@@ -8,12 +8,14 @@ namespace SmartEdu.RazorWeb.Pages.Subjects
     public class IndexModel : PageModel
     {
         private readonly ISubjectService _subjectService;
+        private readonly ISubjectNotificationService _notification;
         private readonly ILogger<IndexModel> _logger;
 
-        public IndexModel(ISubjectService subjectService, ILogger<IndexModel> logger)
+        public IndexModel(ISubjectService subjectService, ILogger<IndexModel> logger, ISubjectNotificationService notification)
         {
             _subjectService = subjectService;
             _logger = logger;
+            _notification = notification;
         }
 
         public IEnumerable<SubjectDto> Subjects { get; set; } = new List<SubjectDto>();
@@ -106,6 +108,7 @@ namespace SmartEdu.RazorWeb.Pages.Subjects
                 await _subjectService.CreateAsync(dto);
                 TempData["SuccessMessage"] = "Subject created successfully.";
                 _logger.LogInformation("Subject '{Name}' created", dto?.Name);
+                await _notification.SubjectListChanged();
                 return RedirectToPage();
             }
             catch (Exception ex)
@@ -161,6 +164,8 @@ namespace SmartEdu.RazorWeb.Pages.Subjects
                 await _subjectService.UpdateAsync(EditSubject);
                 TempData["SuccessMessage"] = "Subject updated successfully.";
                 _logger.LogInformation("Subject '{Id}' updated", EditSubject?.Id);
+
+                await _notification.SubjectListChanged();
                 return RedirectToPage();
             }
             catch (Exception ex)
@@ -176,6 +181,7 @@ namespace SmartEdu.RazorWeb.Pages.Subjects
         {
             await _subjectService.DeleteAsync(id);
             TempData["SuccessMessage"] = "Subject deleted.";
+            await _notification.SubjectListChanged();
             return RedirectToPage();
         }
     }

@@ -15,13 +15,6 @@ namespace SmartEdu.Business.Interfaces
             int currentChunk,
             int totalChunks,
             int subjectId);
-
-        Task LogCreated(
-            int documentId,
-            string message,
-            string status,
-            int subjectId);
-
         Task ProcessingCompleted(int documentId, int subjectId);
 
         Task ProcessingFailed(
@@ -30,7 +23,6 @@ namespace SmartEdu.Business.Interfaces
             int subjectId);
 
         // Broadcast a log message to all connected clients (diagnostic)
-        Task BroadcastLog(int documentId, string message, string status);
         Task ChunkLogCreated(int documentId, int chunkIndex, int totalChunks, string content, int subjectId);
     }
 }

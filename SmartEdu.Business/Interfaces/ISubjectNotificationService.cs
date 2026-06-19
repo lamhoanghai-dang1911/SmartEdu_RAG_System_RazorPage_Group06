@@ -8,12 +8,6 @@ namespace SmartEdu.Business.Interfaces
 {
     public interface ISubjectNotificationService
     {
-        Task SubjectCreated(int subjectId, string subjectName);
-
-        Task SubjectUpdated(int subjectId, string subjectName);
-
-        Task SubjectDeleted(int subjectId);
-
         Task StudentAssigned(
             int subjectId,
             int studentId);
@@ -29,5 +23,7 @@ namespace SmartEdu.Business.Interfaces
         Task ImportCompleted(
             int subjectId,
             int totalStudents);
+
+        Task SubjectListChanged();
     }
 }
