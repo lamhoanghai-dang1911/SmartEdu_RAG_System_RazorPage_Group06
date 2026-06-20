@@ -4,119 +4,884 @@
     ViewData["Title"] = "Upload Document";
 }
 
-<h2>Upload Document</h2>
+<style>
+    .se-up-header {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 22px;
+    }
 
-<form method="get" class="mb-3">
-    <label>Select subject</label>
-    <select name="SubjectId" class="form-select" onchange="this.form.submit()">
-        <option value="">-- Select subject --</option>
-        @foreach (var s in Model.Subjects)
-        {
-            <option value="@s.Id" selected="@(Model.SubjectId == s.Id)">@s.Name</option>
+        .se-up-header svg {
+            width: 24px;
+            height: 24px;
+            stroke: #4A90E2;
+            fill: none;
         }
-    </select>
-</form>
+
+        .se-up-header h2 {
+            font-size: 20px;
+            font-weight: 600;
+            color: #0F1B2D;
+            margin: 0;
+        }
+
+    .se-card {
+        border: 1px solid #E2E8F0;
+        border-radius: 14px;
+        background: #fff;
+        margin-bottom: 16px;
+        overflow: hidden;
+    }
+
+    .se-card-head {
+        padding: 11px 16px;
+        border-bottom: 1px solid #E2E8F0;
+        font-size: 11px;
+        font-weight: 600;
+        color: #6B7B8D;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        background: #F8FAFC;
+    }
+
+        .se-card-head svg {
+            width: 15px;
+            height: 15px;
+            stroke: #4A90E2;
+            fill: none;
+        }
+
+    .se-card-body {
+        padding: 18px;
+    }
+
+    .se-field-label {
+        display: block;
+        font-size: 12px;
+        font-weight: 500;
+        color: #3D4F63;
+        margin-bottom: 6px;
+    }
+
+    .se-card-body .form-select,
+    .se-card-body .form-control {
+        padding: 9px 13px;
+        border: 1px solid #D1DCE8;
+        border-radius: 10px;
+        font-size: 13px;
+        color: #1A2A3A;
+        background: #F8FAFC;
+        outline: none;
+        transition: border-color 0.12s, box-shadow 0.12s;
+        box-shadow: none;
+    }
+
+        .se-card-body .form-select:focus,
+        .se-card-body .form-control:focus {
+            border-color: #4A90E2;
+            background: #fff;
+            box-shadow: 0 0 0 3px rgba(74,144,226,0.10);
+        }
+
+    .se-mb {
+        margin-bottom: 14px;
+    }
+
+    .se-upload-zone {
+        border: 1.5px dashed #C4D4E4;
+        border-radius: 10px;
+        padding: 24px;
+        text-align: center;
+        color: #AAB4C0;
+        font-size: 13px;
+        cursor: pointer;
+        transition: border-color 0.15s, background 0.15s;
+        max-width: 420px;
+    }
+
+        .se-upload-zone:hover {
+            border-color: #4A90E2;
+            background: #F4F8FC;
+            color: #4A90E2;
+        }
+
+        .se-upload-zone svg {
+            width: 28px;
+            height: 28px;
+            stroke: currentColor;
+            fill: none;
+            display: block;
+            margin: 0 auto 8px;
+        }
+
+    .se-card-body input[type="file"] {
+        padding: 8px 13px;
+        border: 1px solid #D1DCE8;
+        border-radius: 10px;
+        font-size: 13px;
+        color: #1A2A3A;
+        background: #F8FAFC;
+        max-width: 420px;
+        width: 100%;
+        cursor: pointer;
+    }
+
+    .se-btn-primary {
+        padding: 9px 20px;
+        background: #4A90E2;
+        color: #fff;
+        border: none;
+        border-radius: 10px;
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        transition: background 0.12s;
+    }
+
+        .se-btn-primary:hover {
+            background: #2f76cc;
+        }
+
+        .se-btn-primary svg {
+            width: 15px;
+            height: 15px;
+            stroke: #fff;
+            fill: none;
+        }
+
+    .se-alert {
+        padding: 11px 15px;
+        border-radius: 10px;
+        font-size: 13px;
+        display: flex;
+        align-items: flex-start;
+        gap: 9px;
+        margin-bottom: 14px;
+    }
+
+        .se-alert svg {
+            width: 16px;
+            height: 16px;
+            fill: none;
+            stroke: currentColor;
+            flex-shrink: 0;
+            margin-top: 1px;
+        }
+
+    .se-alert-info {
+        background: #E6F1FB;
+        color: #185FA5;
+        border: 1px solid #B5D4F4;
+    }
+
+    .se-alert-warning {
+        background: #FAEEDA;
+        color: #854F0B;
+        border: 1px solid #FAC775;
+    }
+
+    /* Table */
+    .se-table-wrap {
+        overflow-x: auto;
+    }
+
+        .se-table-wrap table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+
+        .se-table-wrap thead tr {
+            background: #F8FAFC;
+            border-bottom: 1px solid #E2E8F0;
+        }
+
+        .se-table-wrap th {
+            padding: 9px 16px;
+            font-size: 11px;
+            font-weight: 600;
+            color: #6B7B8D;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            text-align: left;
+        }
+
+        .se-table-wrap tbody tr {
+            border-bottom: 1px solid #F0F4F8;
+            transition: background 0.1s;
+        }
+
+            .se-table-wrap tbody tr:last-child {
+                border-bottom: none;
+            }
+
+            .se-table-wrap tbody tr:hover {
+                background: #F4F8FC;
+            }
+
+        .se-table-wrap td {
+            padding: 11px 16px;
+            vertical-align: middle;
+            color: #1A2A3A;
+        }
+
+    .se-doc-cell {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+    }
+
+    .se-doc-icon {
+        width: 32px;
+        height: 32px;
+        border-radius: 8px;
+        background: #E6F1FB;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+
+        .se-doc-icon svg {
+            width: 16px;
+            height: 16px;
+            stroke: #4A90E2;
+            fill: none;
+        }
+
+    .se-doc-name {
+        font-size: 13px;
+        font-weight: 500;
+        color: #1A2A3A;
+    }
+
+    .se-badge {
+        font-size: 11px;
+        padding: 3px 10px;
+        border-radius: 20px;
+        font-weight: 500;
+        white-space: nowrap;
+        display: inline-block;
+    }
+
+    .se-st-ready {
+        background: #EAF3DE;
+        color: #3B6D11;
+    }
+
+    .se-st-failed {
+        background: #FCEBEB;
+        color: #A32D2D;
+    }
+
+    .se-st-processing {
+        background: #E6F1FB;
+        color: #185FA5;
+    }
+
+    .se-st-pending {
+        background: #FAEEDA;
+        color: #854F0B;
+    }
+
+    .se-muted-sm {
+        font-size: 12px;
+        color: #AAB4C0;
+    }
+
+    .se-processing-text {
+        font-size: 12px;
+        color: #4A90E2;
+        margin-left: 6px;
+        animation: se-blink 1.2s infinite;
+    }
+
+    @@keyframes se-blink {
+        0%, 100% {
+            opacity: 1;
+        }
+
+        50% {
+            opacity: 0.4;
+        }
+    }
+
+    .se-btn-row {
+        display: flex;
+        gap: 6px;
+        flex-wrap: wrap;
+        align-items: center;
+    }
+
+    .se-btn-sm {
+        padding: 5px 11px;
+        font-size: 12px;
+        font-weight: 500;
+        border-radius: 8px;
+        cursor: pointer;
+        border: 1px solid #D1DCE8;
+        background: #fff;
+        color: #1A2A3A;
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        transition: background 0.1s, border-color 0.1s, color 0.1s;
+        text-decoration: none;
+        white-space: nowrap;
+    }
+
+        .se-btn-sm svg {
+            width: 13px;
+            height: 13px;
+            stroke: currentColor;
+            fill: none;
+        }
+
+        .se-btn-sm:hover {
+            background: #F4F8FC;
+        }
+
+        .se-btn-sm:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+    .trigger-btn {
+        border-color: #B5D4F4;
+        color: #185FA5;
+    }
+
+        .trigger-btn:hover:not(:disabled) {
+            background: #E6F1FB;
+        }
+
+    .se-btn-danger {
+        border-color: #F7C1C1;
+        color: #A32D2D;
+    }
+
+        .se-btn-danger:hover:not(:disabled) {
+            background: #FCEBEB;
+        }
+
+    /* Progress */
+    .se-progress-area {
+        padding: 16px;
+        border-top: 1px solid #E2E8F0;
+    }
+
+    .se-progress-label {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 12px;
+        font-weight: 500;
+        color: #3D4F63;
+        margin-bottom: 8px;
+    }
+
+    .se-progress-track {
+        height: 6px;
+        background: #EEF4FB;
+        border-radius: 20px;
+        overflow: hidden;
+    }
+
+    #global-progress-bar {
+        height: 100%;
+        background: #4A90E2;
+        border-radius: 20px;
+        width: 0%;
+        transition: width 0.3s;
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        font-size: 0;
+    }
+
+    #log {
+        margin-top: 12px;
+    }
+
+    .chunk-log-item {
+        padding: 9px 13px;
+        border: 1px solid #E2E8F0;
+        border-radius: 9px;
+        margin-bottom: 6px;
+        background: #F8FAFC;
+    }
+
+        .chunk-log-item strong {
+            font-size: 11px;
+            color: #6B7B8D;
+            display: block;
+            margin-bottom: 3px;
+        }
+
+        .chunk-log-item p {
+            font-size: 12px;
+            color: #AAB4C0;
+            line-height: 1.55;
+            margin: 0;
+        }
+
+    /* ===== Embedding Progress Modal ===== */
+    .se-modal-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(15, 27, 45, 0.45);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+        padding: 20px;
+    }
+
+        .se-modal-overlay.se-modal-open {
+            display: flex;
+        }
+
+    .se-modal-box {
+        background: #fff;
+        border-radius: 16px;
+        width: 100%;
+        max-width: 480px;
+        max-height: 80vh;
+        display: flex;
+        flex-direction: column;
+        box-shadow: 0 20px 60px rgba(15,27,45,0.25);
+        overflow: hidden;
+    }
+
+    .se-modal-head {
+        padding: 16px 20px;
+        border-bottom: 1px solid #E2E8F0;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+        .se-modal-head h3 {
+            font-size: 14px;
+            font-weight: 600;
+            color: #0F1B2D;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+            .se-modal-head h3 svg {
+                width: 16px;
+                height: 16px;
+                stroke: #4A90E2;
+                fill: none;
+            }
+
+    .se-modal-close {
+        background: none;
+        border: none;
+        cursor: pointer;
+        color: #AAB4C0;
+        padding: 4px;
+        border-radius: 6px;
+        display: flex;
+        transition: background 0.1s, color 0.1s;
+    }
+
+        .se-modal-close:hover {
+            background: #F4F8FC;
+            color: #1A2A3A;
+        }
+
+        .se-modal-close svg {
+            width: 16px;
+            height: 16px;
+            stroke: currentColor;
+            fill: none;
+        }
+
+    .se-modal-body {
+        padding: 18px 20px;
+        overflow-y: auto;
+    }
+
+    /* ===== Animations ===== */
+    @@keyframes seFadeUp {
+        from {
+            opacity: 0;
+            transform: translateY(14px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    @@keyframes seModalIn {
+        from {
+            opacity: 0;
+            transform: translateY(16px) scale(0.96);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+    }
+
+    @@keyframes seOverlayIn {
+        from {
+            opacity: 0;
+        }
+
+        to {
+            opacity: 1;
+        }
+    }
+
+    @@keyframes seLogIn {
+        from {
+            opacity: 0;
+            transform: translateY(6px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    @@keyframes seShimmer {
+        0% {
+            background-position: -120px 0;
+        }
+
+        100% {
+            background-position: 120px 0;
+        }
+    }
+
+    @@keyframes seSpin {
+        from {
+            transform: rotate(0deg);
+        }
+
+        to {
+            transform: rotate(360deg);
+        }
+    }
+
+    .se-up-header {
+        animation: seFadeUp 0.4s ease-out both;
+    }
+
+    .se-card {
+        animation: seFadeUp 0.4s ease-out 0.06s both;
+    }
+
+        .se-card:nth-of-type(2) {
+            animation-delay: 0.12s;
+        }
+
+        .se-card:nth-of-type(3) {
+            animation-delay: 0.18s;
+        }
+
+    .se-alert {
+        animation: seFadeUp 0.35s ease-out both;
+    }
+
+    .se-table-wrap tbody tr {
+        transition: background 0.15s;
+    }
+
+    .se-btn-primary,
+    .se-btn-sm {
+        transition: background 0.12s, border-color 0.12s, color 0.12s, transform 0.12s;
+    }
+
+        .se-btn-primary:hover {
+            transform: translateY(-1px);
+        }
+
+        .se-btn-primary:active {
+            transform: scale(0.97);
+        }
+
+        .se-btn-sm:active:not(:disabled) {
+            transform: scale(0.95);
+        }
+
+    .se-badge {
+        transition: background 0.25s, color 0.25s;
+    }
+
+    .se-upload-zone {
+        transition: border-color 0.15s, background 0.15s, transform 0.15s;
+    }
+
+        .se-upload-zone:hover {
+            transform: translateY(-1px);
+        }
+
+    /* Modal entrance */
+    .se-modal-overlay.se-modal-open {
+        animation: seOverlayIn 0.2s ease-out both;
+    }
+
+        .se-modal-overlay.se-modal-open .se-modal-box {
+            animation: seModalIn 0.28s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+        }
+
+    .se-modal-close {
+        transition: background 0.1s, color 0.1s, transform 0.1s;
+    }
+
+        .se-modal-close:active {
+            transform: scale(0.9);
+        }
+
+    /* Progress bar shimmer while active */
+    #global-progress-bar {
+        background-image: linear-gradient( 90deg, #4A90E2 0%, #6FAEF0 50%, #4A90E2 100% );
+        background-size: 200px 100%;
+        animation: seShimmer 1.4s linear infinite;
+    }
+
+    /* Chunk log items animate in */
+    .chunk-log-item {
+        animation: seLogIn 0.3s ease-out both;
+    }
+
+    /* Spinner icon on the modal title while processing */
+    .se-modal-head h3 svg {
+        animation: seSpin 1.6s linear infinite;
+    }
+
+    /* Respect reduced motion preference */
+    @@media (prefers-reduced-motion: reduce) {
+        .se-up-header,
+        .se-card,
+        .se-alert,
+        .se-modal-overlay.se-modal-open,
+        .se-modal-overlay.se-modal-open .se-modal-box,
+        #global-progress-bar,
+        .chunk-log-item,
+        .se-modal-head h3 svg {
+            animation: none !important;
+            transition: none !important;
+            opacity: 1 !important;
+            transform: none !important;
+        }
+    }
+</style>
+
+<div class="se-up-header">
+    <svg viewBox="0 0 24 24" stroke-width="1.8"><polyline points="16 16 12 12 8 16" /><line x1="12" y1="12" x2="12" y2="21" /><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3" /></svg>
+    <h2>Upload Document</h2>
+</div>
+
+<!-- Subject selector -->
+<div class="se-card">
+    <div class="se-card-head">
+        <svg viewBox="0 0 24 24" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" /><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" /></svg>
+        Môn học
+    </div>
+    <div class="se-card-body">
+        <form method="get">
+            <label class="se-field-label">Chọn môn học để quản lý tài liệu</label>
+            <select name="SubjectId" class="form-select" style="max-width:320px" onchange="this.form.submit()">
+                <option value="">-- Select subject --</option>
+                @foreach (var s in Model.Subjects)
+                {
+                    <option value="@s.Id" selected="@(Model.SubjectId == s.Id)">@s.Name</option>
+                }
+            </select>
+        </form>
+    </div>
+</div>
 
 @if (!Model.SubjectId.HasValue)
 {
-    <div class="alert alert-info">Select a subject to upload documents (only leader can upload).</div>
+    <div class="se-alert se-alert-info">
+        <svg viewBox="0 0 24 24" stroke-width="1.8"><circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" /></svg>
+        Chọn một môn học để upload tài liệu (chỉ trưởng nhóm mới có thể upload).
+    </div>
 }
 else
 {
     @if (!string.IsNullOrEmpty(Model.AccessDeniedMessage))
     {
-        <div class="alert alert-warning">@Model.AccessDeniedMessage</div>
+        <div class="se-alert se-alert-warning">
+            <svg viewBox="0 0 24 24" stroke-width="1.8"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" /><line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" /></svg>
+            @Model.AccessDeniedMessage
+        </div>
     }
 
     @if (Model.IsLeader)
     {
-        <form method="post" enctype="multipart/form-data" asp-page-handler="Upload">
-            @Html.AntiForgeryToken()
-            <input type="hidden" name="SubjectId" value="@Model.SubjectId" />
-            <div class="mb-3">
-                <label class="form-label">Title</label>
-                <input class="form-control" asp-for="Title" />
+        <div class="se-card">
+            <div class="se-card-head">
+                <svg viewBox="0 0 24 24" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" /></svg>
+                Upload tài liệu mới
             </div>
-            <div class="mb-3">
-                <label class="form-label">File (PDF or DOCX)</label>
-                <input type="file" name="File" class="form-control" />
+            <div class="se-card-body">
+                <form method="post" enctype="multipart/form-data" asp-page-handler="Upload">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="SubjectId" value="@Model.SubjectId" />
+
+                    <div class="se-mb">
+                        <label class="se-field-label">Tiêu đề</label>
+                        <input class="form-control" asp-for="Title" placeholder="Nhập tiêu đề tài liệu..." style="max-width:420px" />
+                    </div>
+
+                    <div class="se-mb">
+                        <label class="se-field-label">File (PDF hoặc DOCX)</label>
+                        <input type="file" name="File" class="form-control" accept=".pdf,.docx" />
+                    </div>
+
+                    <button type="submit" class="se-btn-primary">
+                        <svg viewBox="0 0 24 24" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" /></svg>
+                        Upload
+                    </button>
+                </form>
             </div>
-            <button class="btn btn-primary">Upload</button>
-        </form>
+        </div>
     }
 
     @if (Model.IsLeader || Model.Documents.Any())
     {
-        <h3 class="mt-4">Documents</h3>
-        <table class="table">
-            <thead>
-                <tr>
-                    <th>Title</th>
-                    <th>File</th>
-                    <th></th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var d in Model.Documents)
-                {
-                    var statusClass = d.Status switch
-                    {
-                        SmartEdu.Shared.Enums.DocumentStatus.Ready => "bg-success text-white",
-                        SmartEdu.Shared.Enums.DocumentStatus.Failed => "bg-danger text-white",
-                        SmartEdu.Shared.Enums.DocumentStatus.Processing => "bg-primary text-white",
-                        _ => "bg-warning text-dark"
-                    };
-                    <tr id="doc-row-@d.Id">
-                        <td>
-                            <span class="doc-title">@d.Title</span>
-                            <span class="badge @statusClass ms-2 doc-status" id="doc-status-@d.Id">@d.Status.ToString()</span>
-                            <span class="ms-2 text-muted processing-text" id="processing-text-@d.Id" style="display:none">Đang xử lý...</span>
-                        </td>
-                        <td>@d.FileName</td>
-                        <td>
-                            <button type="button" class="btn btn-sm btn-success trigger-btn"
-                                    data-docid="@d.Id"
-                                    disabled="@(!Model.IsLeader || d.Status == SmartEdu.Shared.Enums.DocumentStatus.Ready ? "disabled" : null)">
-                                Kích hoạt Embedding
-                            </button>
-
-                            <a class="btn btn-sm btn-secondary" asp-page="/Documents/UploadDocument" asp-route-handler="Download" asp-route-id="@d.Id">Download</a>
-
-                            @if (Model.IsLeader)
-                            {
-                                <form method="post" asp-page-handler="Delete" class="d-inline">
-                                    @Html.AntiForgeryToken()
-                                    <input type="hidden" name="id" value="@d.Id" />
-                                    <button type="submit" class="btn btn-sm btn-danger">Delete</button>
-                                </form>
-                            }
-                            else
-                            {
-                                <button type="button" class="btn btn-sm btn-danger" disabled>Delete</button>
-                            }
-                        </td>
-                    </tr>
-                }
-            </tbody>
-        </table>
-
-        @if (Model.IsLeader)
-        {
-            <div id="document-progress" class="mt-4" style="display:none">
-                <h4>Processing progress</h4>
-                <div class="progress">
-                    <div id="global-progress-bar" class="progress-bar" role="progressbar" style="width:0%">0%</div>
-                </div>
-                <div id="log"></div>
+        <div class="se-card">
+            <div class="se-card-head">
+                <svg viewBox="0 0 24 24" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /></svg>
+                Danh sách tài liệu
             </div>
-        }
+
+            <div class="se-table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Tài liệu</th>
+                            <th>Trạng thái</th>
+                            <th>File</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var d in Model.Documents)
+                        {
+                            var statusClass = d.Status switch
+                            {
+                                SmartEdu.Shared.Enums.DocumentStatus.Ready => "se-st-ready",
+                                SmartEdu.Shared.Enums.DocumentStatus.Failed => "se-st-failed",
+                                SmartEdu.Shared.Enums.DocumentStatus.Processing => "se-st-processing",
+                                _ => "se-st-pending"
+                            };
+
+                            bool embedDisabled = !Model.IsLeader || d.Status == SmartEdu.Shared.Enums.DocumentStatus.Ready;
+
+                            <tr id="doc-row-@d.Id">
+                                <td>
+                                    <div class="se-doc-cell">
+                                        <div class="se-doc-icon">
+                                            <svg viewBox="0 0 24 24" stroke-width="1.8"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /></svg>
+                                        </div>
+                                        <div>
+                                            <div class="se-doc-name doc-title">@d.Title</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="se-badge @statusClass doc-status" id="doc-status-@d.Id">@d.Status.ToString()</span>
+                                    <span class="se-processing-text" id="processing-text-@d.Id" style="display:none">Đang xử lý...</span>
+                                </td>
+                                <td><span class="se-muted-sm">@d.FileName</span></td>
+                                <td>
+                                    <div class="se-btn-row">
+                                        <button type="button"
+                                                class="se-btn-sm trigger-btn"
+                                                data-docid="@d.Id"
+                                            @(embedDisabled ? "disabled" : "")>
+                                            <svg viewBox="0 0 24 24" stroke-width="1.8"><rect x="4" y="4" width="16" height="16" rx="2" /><path d="M9 9l6 3-6 3V9z" /></svg>
+                                            Kích hoạt Embedding
+                                        </button>
+
+                                        <a class="se-btn-sm"
+                                           asp-page="/Documents/UploadDocument"
+                                           asp-route-handler="Download"
+                                           asp-route-id="@d.Id">
+                                            <svg viewBox="0 0 24 24" stroke-width="1.8"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>
+                                            Download
+                                        </a>
+
+                                        @if (Model.IsLeader)
+                                        {
+                                            <form method="post" asp-page-handler="Delete" class="d-inline">
+                                                @Html.AntiForgeryToken()
+                                                <input type="hidden" name="id" value="@d.Id" />
+                                                <button type="submit" class="se-btn-sm se-btn-danger">
+                                                    <svg viewBox="0 0 24 24" stroke-width="1.8"><polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14H6L5 6" /><path d="M10 11v6M14 11v6" /><path d="M9 6V4h6v2" /></svg>
+                                                    Xóa
+                                                </button>
+                                            </form>
+                                        }
+                                        else
+                                        {
+                                            <button type="button" class="se-btn-sm se-btn-danger" disabled>
+                                                <svg viewBox="0 0 24 24" stroke-width="1.8"><polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14H6L5 6" /><path d="M10 11v6M14 11v6" /><path d="M9 6V4h6v2" /></svg>
+                                                Xóa
+                                            </button>
+                                        }
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            @if (Model.IsLeader)
+            {
+                <div id="document-progress" class="se-modal-overlay">
+                    <div class="se-modal-box">
+                        <div class="se-modal-head">
+                            <h3>
+                                <svg viewBox="0 0 24 24" stroke-width="1.8"><rect x="4" y="4" width="16" height="16" rx="2" /><path d="M9 9l6 3-6 3V9z" /></svg>
+                                Đang xử lý embedding...
+                            </h3>
+                            <button type="button" class="se-modal-close" id="progress-modal-close" aria-label="Đóng">
+                                <svg viewBox="0 0 24 24" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+                            </button>
+                        </div>
+                        <div class="se-modal-body">
+                            <div class="se-progress-label">
+                                <span>Tiến trình</span>
+                                <span id="progress-pct">0%</span>
+                            </div>
+                            <div class="se-progress-track">
+                                <div id="global-progress-bar" role="progressbar" style="width:0%"></div>
+                            </div>
+                            <div id="log"></div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
 
         <div style="display:none">@Html.AntiForgeryToken()</div>
     }
 }
 
 @section Scripts {
-    <!-- signalr script already loaded in layout via CDN; avoid duplicate local include to prevent 404 -->
     <script>
         (function () {
             const subjectId = '@Model.SubjectId';
@@ -128,27 +893,34 @@ else
 
             function safeGet(id) { return document.getElementById(id); }
 
+            function closeProgressModal() {
+                const overlay = safeGet('document-progress');
+                if (overlay) overlay.classList.remove('se-modal-open');
+            }
+
             function statusClassFor(status) {
                 switch (status) {
-                    case 'Ready': return 'bg-success text-white';
-                    case 'Failed': return 'bg-danger text-white';
-                    case 'Processing': return 'bg-primary text-white';
-                    default: return 'bg-warning text-dark';
+                    case 'Ready':      return 'se-st-ready';
+                    case 'Failed':     return 'se-st-failed';
+                    case 'Processing': return 'se-st-processing';
+                    default:           return 'se-st-pending';
                 }
             }
 
             window.triggerEmbedding = async function (documentId, btn) {
-                if (!isLeader) return; // chỉ Leader được trigger
+                if (!isLeader) return;
                 try {
                     if (btn) btn.disabled = true;
                     const procText = safeGet('processing-text-' + documentId);
                     if (procText) procText.style.display = '';
 
                     const progressArea = safeGet('document-progress');
-                    if (progressArea) progressArea.style.display = '';
+                    if (progressArea) progressArea.classList.add('se-modal-open');
 
                     const global = safeGet('global-progress-bar');
-                    if (global) { global.style.width = '0%'; global.innerText = '0%'; }
+                    const pct = safeGet('progress-pct');
+                    if (global) { global.style.width = '0%'; }
+                    if (pct) pct.innerText = '0%';
 
                     const log = safeGet('log');
                     if (log) log.innerHTML = '';
@@ -190,11 +962,14 @@ else
             conn.on('DocumentProgress', function (documentId, currentChunk, totalChunks) {
                 const pct = Math.round((currentChunk / totalChunks) * 100);
                 const global = safeGet('global-progress-bar');
-                if (global) { global.style.width = pct + '%'; global.innerText = pct + '%'; }
+                const pctEl = safeGet('progress-pct');
+                if (global) global.style.width = pct + '%';
+                if (pctEl) pctEl.innerText = pct + '%';
+
                 const statusBadge = safeGet('doc-status-' + documentId);
                 if (statusBadge) {
                     statusBadge.innerText = 'Processing';
-                    statusBadge.className = 'badge ' + statusClassFor('Processing') + ' ms-2 doc-status';
+                    statusBadge.className = 'se-badge se-st-processing doc-status';
                 }
                 const procText = safeGet('processing-text-' + documentId);
                 if (procText) procText.style.display = '';
@@ -208,21 +983,24 @@ else
                 const log = safeGet('log');
                 if (!log) return;
                 const div = document.createElement('div');
-                div.className = 'chunk-log-item mb-2 p-2 border rounded';
+                div.className = 'chunk-log-item';
                 div.innerHTML = `
                     <strong>Chunk ${chunkIndex + 1}/${totalChunks}</strong>
-                    <p class="mb-0 text-muted small">${content.length > 200 ? content.substring(0, 200) + '...' : content}</p>
+                    <p>${content.length > 200 ? content.substring(0, 200) + '...' : content}</p>
                 `;
                 log.appendChild(div);
             });
 
             conn.on('DocumentCompleted', function (documentId) {
                 const global = safeGet('global-progress-bar');
-                if (global) { global.style.width = '100%'; global.innerText = '100%'; }
+                const pctEl = safeGet('progress-pct');
+                if (global) global.style.width = '100%';
+                if (pctEl) pctEl.innerText = '100%';
+
                 const statusBadge = safeGet('doc-status-' + documentId);
                 if (statusBadge) {
                     statusBadge.innerText = 'Ready';
-                    statusBadge.className = 'badge ' + statusClassFor('Ready') + ' ms-2 doc-status';
+                    statusBadge.className = 'se-badge se-st-ready doc-status';
                 }
                 const procText = safeGet('processing-text-' + documentId);
                 if (procText) procText.style.display = 'none';
@@ -234,7 +1012,7 @@ else
                 const statusBadge = safeGet('doc-status-' + documentId);
                 if (statusBadge) {
                     statusBadge.innerText = 'Failed';
-                    statusBadge.className = 'badge ' + statusClassFor('Failed') + ' ms-2 doc-status';
+                    statusBadge.className = 'se-badge se-st-failed doc-status';
                 }
                 const procText = safeGet('processing-text-' + documentId);
                 if (procText) procText.style.display = 'none';
@@ -251,7 +1029,6 @@ else
                     const subjects = await res.json();
                     const select = document.querySelector('select[name="SubjectId"]');
                     if (!select) return;
-
                     const currentValue = select.value;
                     select.innerHTML = '<option value="">-- Select subject --</option>';
                     subjects.forEach(s => {
@@ -276,7 +1053,6 @@ else
                             .then(() => console.debug('Joined subject group', subjectId))
                             .catch(e => console.error('JoinSubjectGroup failed', e));
                     }
-
                     if (isLeader) {
                         document.querySelectorAll('.trigger-btn').forEach(btn => {
                             btn.addEventListener('click', function () {
@@ -287,6 +1063,16 @@ else
                                 btn.disabled = true;
                             });
                         });
+
+                        const closeBtn = safeGet('progress-modal-close');
+                        if (closeBtn) closeBtn.addEventListener('click', closeProgressModal);
+
+                        const overlay = safeGet('document-progress');
+                        if (overlay) {
+                            overlay.addEventListener('click', function (e) {
+                                if (e.target === overlay) closeProgressModal();
+                            });
+                        }
                     }
                 })
                 .catch(e => console.error('Hub connection failed', e));

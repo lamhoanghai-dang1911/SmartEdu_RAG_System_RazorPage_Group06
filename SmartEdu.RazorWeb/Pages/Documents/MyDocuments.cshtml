@@ -4,54 +4,470 @@
     ViewData["Title"] = "My Documents";
 }
 
-<h2>My Documents</h2>
+<style>
+    .se-doc-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 20px;
+    }
 
-<div class="row mb-3">
-    <div class="col-md-4">
-        <label class="form-label">Subject</label>
-        <select id="subjectFilter" class="form-select">
-            <option value="">Tất cả</option>
+    .se-doc-title {
+        font-size: 20px;
+        font-weight: 600;
+        color: #0F1B2D;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+        .se-doc-title svg {
+            width: 22px;
+            height: 22px;
+            stroke: #4A90E2;
+            fill: none;
+        }
+
+    .se-doc-count {
+        font-size: 12px;
+        color: #6B7B8D;
+        background: #F4F8FC;
+        border: 1px solid #E2E8F0;
+        border-radius: 20px;
+        padding: 3px 12px;
+    }
+
+    .se-filter-bar {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 16px;
+        flex-wrap: wrap;
+    }
+
+        .se-filter-bar .se-select-wrap,
+        .se-filter-bar .se-input-wrap {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        .se-filter-bar .se-icon {
+            position: absolute;
+            left: 10px;
+            color: #AAB4C0;
+            pointer-events: none;
+        }
+
+            .se-filter-bar .se-icon svg {
+                width: 15px;
+                height: 15px;
+                stroke: currentColor;
+                fill: none;
+            }
+
+    #subjectFilter,
+    #searchBox {
+        padding: 8px 12px 8px 32px;
+        border: 1px solid #D1DCE8;
+        border-radius: 10px;
+        font-size: 13px;
+        color: #1A2A3A;
+        background: #fff;
+        outline: none;
+        transition: border-color 0.12s, box-shadow 0.12s;
+    }
+
+    #subjectFilter {
+        width: 200px;
+    }
+
+    #searchBox {
+        width: 260px;
+    }
+
+        #subjectFilter:focus,
+        #searchBox:focus {
+            border-color: #4A90E2;
+            box-shadow: 0 0 0 3px rgba(74,144,226,0.10);
+        }
+
+    .se-table-wrap {
+        border: 1px solid #E2E8F0;
+        border-radius: 14px;
+        overflow: hidden;
+        background: #fff;
+    }
+
+    #docsTable {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 13px;
+        margin: 0;
+    }
+
+        #docsTable thead tr {
+            background: #F8FAFC;
+            border-bottom: 1px solid #E2E8F0;
+        }
+
+        #docsTable th {
+            padding: 10px 16px;
+            text-align: left;
+            font-size: 11px;
+            font-weight: 600;
+            color: #6B7B8D;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        #docsTable tbody tr {
+            border-bottom: 1px solid #F0F4F8;
+            transition: background 0.1s;
+        }
+
+            #docsTable tbody tr:last-child {
+                border-bottom: none;
+            }
+
+            #docsTable tbody tr:hover {
+                background: #F4F8FC;
+            }
+
+        #docsTable td {
+            padding: 12px 16px;
+            vertical-align: middle;
+            color: #1A2A3A;
+        }
+
+    .se-file-cell {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .se-file-icon {
+        width: 34px;
+        height: 34px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 11px;
+        font-weight: 700;
+        flex-shrink: 0;
+        letter-spacing: 0;
+    }
+
+    .se-fi-pdf {
+        background: #FCEBEB;
+        color: #A32D2D;
+    }
+
+    .se-fi-doc, .se-fi-docx {
+        background: #E6F1FB;
+        color: #185FA5;
+    }
+
+    .se-fi-ppt, .se-fi-pptx {
+        background: #FAEEDA;
+        color: #854F0B;
+    }
+
+    .se-fi-xls, .se-fi-xlsx {
+        background: #EAF3DE;
+        color: #3B6D11;
+    }
+
+    .se-fi-other {
+        background: #F1EFE8;
+        color: #5F5E5A;
+    }
+
+    .se-doc-name {
+        font-size: 13px;
+        font-weight: 500;
+        color: #1A2A3A;
+        line-height: 1.3;
+    }
+
+    .se-doc-filename {
+        font-size: 11px;
+        color: #AAB4C0;
+        margin-top: 2px;
+    }
+
+    .se-badge-sub {
+        font-size: 11px;
+        padding: 3px 10px;
+        border-radius: 20px;
+        background: #E6F1FB;
+        color: #185FA5;
+        white-space: nowrap;
+        font-weight: 500;
+    }
+
+    .se-muted {
+        font-size: 12px;
+        color: #6B7B8D;
+    }
+
+    .se-btn-dl {
+        padding: 5px 12px;
+        border: 1px solid #D1DCE8;
+        border-radius: 8px;
+        background: #fff;
+        color: #1A2A3A;
+        font-size: 12px;
+        font-weight: 500;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        text-decoration: none;
+        transition: background 0.1s, border-color 0.1s, color 0.1s;
+        white-space: nowrap;
+    }
+
+        .se-btn-dl:hover {
+            background: #EEF4FB;
+            border-color: #4A90E2;
+            color: #4A90E2;
+        }
+
+        .se-btn-dl svg {
+            width: 14px;
+            height: 14px;
+            stroke: currentColor;
+            fill: none;
+        }
+
+    .se-empty-row td {
+        text-align: center;
+        padding: 40px;
+        color: #AAB4C0;
+        font-size: 13px;
+    }
+
+    .se-empty-row svg {
+        width: 28px;
+        height: 28px;
+        stroke: #C5D0DC;
+        fill: none;
+        display: block;
+        margin: 0 auto 8px;
+    }
+
+    /* ===== Animations ===== */
+    @@keyframes seFadeUp {
+        from {
+            opacity: 0;
+            transform: translateY(14px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    @@keyframes seFadeIn {
+        from {
+            opacity: 0;
+        }
+
+        to {
+            opacity: 1;
+        }
+    }
+
+    @@keyframes seRowIn {
+        from {
+            opacity: 0;
+            transform: translateY(8px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .se-doc-header {
+        animation: seFadeUp 0.45s ease-out both;
+    }
+
+    .se-filter-bar {
+        animation: seFadeUp 0.45s ease-out 0.08s both;
+    }
+
+    .se-table-wrap {
+        animation: seFadeUp 0.45s ease-out 0.15s both;
+    }
+
+    #docsTable tbody tr {
+        animation: seRowIn 0.35s ease-out both;
+    }
+
+        #docsTable tbody tr:nth-child(1) {
+            animation-delay: 0.05s;
+        }
+
+        #docsTable tbody tr:nth-child(2) {
+            animation-delay: 0.10s;
+        }
+
+        #docsTable tbody tr:nth-child(3) {
+            animation-delay: 0.15s;
+        }
+
+        #docsTable tbody tr:nth-child(4) {
+            animation-delay: 0.20s;
+        }
+
+        #docsTable tbody tr:nth-child(5) {
+            animation-delay: 0.25s;
+        }
+
+        #docsTable tbody tr:nth-child(n+6) {
+            animation-delay: 0.28s;
+        }
+
+        #docsTable tbody tr:hover {
+            background: #F4F8FC;
+            transform: translateX(2px);
+        }
+
+    #docsTable tbody tr {
+        transition: background 0.15s, transform 0.15s;
+    }
+
+    .se-file-icon {
+        transition: transform 0.15s;
+    }
+
+    #docsTable tbody tr:hover .se-file-icon {
+        transform: scale(1.06);
+    }
+
+    .se-btn-dl {
+        transition: background 0.12s, border-color 0.12s, color 0.12s, transform 0.12s;
+    }
+
+        .se-btn-dl:hover {
+            transform: translateY(-1px);
+        }
+
+        .se-btn-dl:active {
+            transform: scale(0.96);
+        }
+
+    #subjectFilter,
+    #searchBox {
+        transition: border-color 0.12s, box-shadow 0.12s;
+    }
+
+    .se-empty-row {
+        animation: seFadeIn 0.35s ease-out both;
+    }
+
+    /* Respect reduced motion preference */
+    @@media (prefers-reduced-motion: reduce) {
+        .se-doc-header,
+        .se-filter-bar,
+        .se-table-wrap,
+        #docsTable tbody tr,
+        .se-empty-row {
+            animation: none !important;
+            transition: none !important;
+            opacity: 1 !important;
+            transform: none !important;
+        }
+    }
+</style>
+
+<div class="se-doc-header">
+    <div class="se-doc-title">
+        <svg viewBox="0 0 24 24" stroke-width="1.8">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+            <polyline points="14 2 14 8 20 8" />
+            <line x1="16" y1="13" x2="8" y2="13" />
+            <line x1="16" y1="17" x2="8" y2="17" />
+            <polyline points="10 9 9 9 8 9" />
+        </svg>
+        Tài liệu của tôi
+    </div>
+    <span class="se-doc-count">@Model.Documents.Count() tài liệu</span>
+</div>
+
+<div class="se-filter-bar">
+    <div class="se-select-wrap">
+        <span class="se-icon">
+            <svg viewBox="0 0 24 24" stroke-width="2"><path d="M4 6h16M7 12h10M10 18h4" /></svg>
+        </span>
+        <select id="subjectFilter">
+            <option value="">Tất cả môn học</option>
             @foreach (var s in Model.Subjects)
             {
                 <option value="@s.Id">@s.Name</option>
             }
         </select>
     </div>
-    <div class="col-md-4">
-        <label class="form-label">Search</label>
-        <input id="searchBox" class="form-control" placeholder="Search by title..." />
+    <div class="se-input-wrap">
+        <span class="se-icon">
+            <svg viewBox="0 0 24 24" stroke-width="2"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
+        </span>
+        <input id="searchBox" placeholder="Tìm theo tiêu đề..." />
     </div>
 </div>
 
-<table class="table table-striped" id="docsTable">
-    <thead>
-        <tr>
-            <th>Title</th>
-            <th>Subject</th>
-            <th>File</th>
-            <th>Type</th>
-            <th>Size</th>
-            <th>Created</th>
-            <th></th>
-        </tr>
-    </thead>
-    <tbody id="docsBody">
-        @foreach (var d in Model.Documents)
-        {
+<div class="se-table-wrap">
+    <table id="docsTable">
+        <thead>
             <tr>
-                <td class="doc-title">@d.Title</td>
-                <td><span class="badge bg-primary">@d.SubjectName</span></td>
-                <td>@d.FileName</td>
-                <td>@(d.FileType?.ToUpper() ?? "")</td>
-                <td>@SmartEdu.RazorWeb.Pages.Documents.MyDocumentsModel.FormatFileSize(d.FileSize)</td>
-                <td>@d.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy")</td>
-                <td>
-                    <a class="btn btn-sm btn-secondary" asp-page="/Documents/MyDocuments" asp-route-handler="Download" asp-route-id="@d.Id">Download</a>
-                </td>
+                <th>Tài liệu</th>
+                <th>Môn học</th>
+                <th>Loại</th>
+                <th>Kích thước</th>
+                <th>Ngày tạo</th>
+                <th></th>
             </tr>
-        }
-    </tbody>
-</table>
+        </thead>
+        <tbody id="docsBody">
+            @foreach (var d in Model.Documents)
+            {
+                var ext = (d.FileType?.ToLower()?.TrimStart('.') ?? "other");
+                var iconClass = ext is "pdf" or "doc" or "docx" or "ppt" or "pptx" or "xls" or "xlsx"
+                    ? $"se-fi-{ext}" : "se-fi-other";
+                var iconLabel = d.FileType?.ToUpper() ?? "?";
+
+                <tr>
+                    <td class="doc-title">
+                        <div class="se-file-cell">
+                            <div class="se-file-icon @iconClass">@iconLabel</div>
+                            <div>
+                                <div class="se-doc-name">@d.Title</div>
+                                <div class="se-doc-filename">@d.FileName</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td><span class="se-badge-sub">@d.SubjectName</span></td>
+                    <td><span class="se-muted">@(d.FileType?.ToUpper() ?? "")</span></td>
+                    <td><span class="se-muted">@SmartEdu.RazorWeb.Pages.Documents.MyDocumentsModel.FormatFileSize(d.FileSize)</span></td>
+                    <td><span class="se-muted">@d.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy")</span></td>
+                    <td>
+                        <a class="se-btn-dl"
+                           asp-page="/Documents/MyDocuments"
+                           asp-route-handler="Download"
+                           asp-route-id="@d.Id">
+                            <svg viewBox="0 0 24 24" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>
+                            Tải xuống
+                        </a>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
 
 @section Scripts {
     <script>
@@ -68,19 +484,46 @@
                 renderRows(data);
             }
 
+            function getIconClass(fileType) {
+                const ext = (fileType || '').toLowerCase().replace('.', '');
+                const map = { pdf: 'se-fi-pdf', doc: 'se-fi-doc', docx: 'se-fi-docx', ppt: 'se-fi-ppt', pptx: 'se-fi-pptx', xls: 'se-fi-xls', xlsx: 'se-fi-xlsx' };
+                return map[ext] || 'se-fi-other';
+            }
+
             function renderRows(items) {
                 docsBody.innerHTML = '';
-                items.forEach(i => {
+                if (!items.length) {
+                    docsBody.innerHTML = `<tr class="se-empty-row"><td colspan="6">
+                        <svg viewBox="0 0 24 24" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                        Không tìm thấy tài liệu nào.
+                    </td></tr>`;
+                    return;
+                }
+                items.forEach((i, idx) => {
                     const tr = document.createElement('tr');
+                    tr.style.animationDelay = (Math.min(idx, 8) * 0.05) + 's';
+                    const iconClass = getIconClass(i.fileType);
+                    const iconLabel = (i.fileType || '').toUpperCase();
                     tr.innerHTML = `
-                        <td class="doc-title">${escapeHtml(i.title)}</td>
-                        <td><span class="badge bg-primary">${escapeHtml(i.subjectName ?? '')}</span></td>
-                        <td>${escapeHtml(i.fileName ?? '')}</td>
-                        <td>${escapeHtml(i.fileType ?? '')}</td>
-                        <td>${escapeHtml(i.fileSize ?? '')}</td>
-                        <td>${escapeHtml(i.createdAt ?? '')}</td>
-                        <td><a class="btn btn-sm btn-secondary" href="?handler=Download&id=${i.id}">Download</a></td>
-                    `;
+                        <td class="doc-title">
+                            <div class="se-file-cell">
+                                <div class="se-file-icon ${iconClass}">${escapeHtml(iconLabel)}</div>
+                                <div>
+                                    <div class="se-doc-name">${escapeHtml(i.title)}</div>
+                                    <div class="se-doc-filename">${escapeHtml(i.fileName ?? '')}</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td><span class="se-badge-sub">${escapeHtml(i.subjectName ?? '')}</span></td>
+                        <td><span class="se-muted">${escapeHtml(i.fileType ?? '')}</span></td>
+                        <td><span class="se-muted">${escapeHtml(i.fileSize ?? '')}</span></td>
+                        <td><span class="se-muted">${escapeHtml(i.createdAt ?? '')}</span></td>
+                        <td>
+                            <a class="se-btn-dl" href="?handler=Download&id=${i.id}">
+                                <svg viewBox="0 0 24 24" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                                Tải xuống
+                            </a>
+                        </td>`;
                     docsBody.appendChild(tr);
                 });
             }
@@ -101,7 +544,6 @@
                     tr.style.display = title.includes(q) ? '' : 'none';
                 });
             });
-
         })();
     </script>
 }

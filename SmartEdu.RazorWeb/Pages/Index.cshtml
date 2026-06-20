@@ -4,158 +4,1046 @@
     ViewData["Title"] = "SmartEdu RAG System";
 }
 
-<div class="text-center py-5">
-    <span class="badge bg-primary bg-opacity-10 text-primary border border-primary
-        border-opacity-25 rounded-pill px-3 py-1 mb-3 d-inline-block">
-        ✨ RAG-powered learning
-    </span>
-    <h1 class="display-5 fw-semibold mb-3">
-        Học thông minh hơn với<br>
-        <span class="text-primary">SmartEdu AI</span>
-    </h1>
-    <p class="lead text-muted mx-auto mb-4" style="max-width:540px">
-        Hệ thống hỏi đáp dựa trên tài liệu học tập của bạn.
-        Upload PDF/DOCX, đặt câu hỏi, nhận câu trả lời chính xác có trích dẫn nguồn.
-    </p>
-    @{ var role = HttpContext.Session.GetString("Role") ?? string.Empty; }
-    <div class="d-flex gap-2 justify-content-center flex-wrap mb-5">
-        <a asp-page="/Chat/Index" class="btn btn-primary px-4">
-            🤖 Bắt đầu Chat RAG
-        </a>
+<style>
+    .se-hero-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 36px;
+        align-items: center;
+        padding: 48px 0 36px;
+    }
 
-        @* Upload visible only to Admin or Lecturer *@
-        @if (!string.IsNullOrEmpty(role) && (role.Equals("Admin", System.StringComparison.OrdinalIgnoreCase) || role.Equals("Lecturer", System.StringComparison.OrdinalIgnoreCase)))
-        {
-            <a asp-page="/Documents/UploadDocument" class="btn btn-outline-secondary px-4">
-                ⬆️ Upload tài liệu
+    .se-hero {
+        text-align: left;
+    }
+
+    .se-hero-badge {
+        display: inline-block;
+        font-size: 11px;
+        font-weight: 600;
+        color: #185FA5;
+        background: #E6F1FB;
+        border: 1px solid #B5D4F4;
+        border-radius: 20px;
+        padding: 4px 14px;
+        margin-bottom: 18px;
+        letter-spacing: 0.3px;
+    }
+
+    .se-hero h1 {
+        font-size: 32px;
+        font-weight: 700;
+        color: #0F1B2D;
+        line-height: 1.3;
+        margin-bottom: 14px;
+    }
+
+        .se-hero h1 span {
+            color: #4A90E2;
+        }
+
+    .se-hero-desc {
+        font-size: 14px;
+        color: #6B7B8D;
+        max-width: 500px;
+        margin: 0 0 28px;
+        line-height: 1.7;
+    }
+
+    .se-hero-actions {
+        display: flex;
+        gap: 8px;
+        justify-content: flex-start;
+        flex-wrap: wrap;
+        margin-bottom: 28px;
+    }
+
+    .se-btn-hero-primary {
+        padding: 10px 22px;
+        background: #4A90E2;
+        color: #fff;
+        border: none;
+        border-radius: 10px;
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        transition: background 0.12s;
+        text-decoration: none;
+    }
+
+        .se-btn-hero-primary:hover {
+            background: #2f76cc;
+            color: #fff;
+        }
+
+        .se-btn-hero-primary svg {
+            width: 15px;
+            height: 15px;
+            stroke: #fff;
+            fill: none;
+        }
+
+    .se-btn-hero-outline {
+        padding: 10px 22px;
+        background: #fff;
+        color: #3D4F63;
+        border: 1px solid #D1DCE8;
+        border-radius: 10px;
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        transition: background 0.12s, border-color 0.12s;
+        text-decoration: none;
+    }
+
+        .se-btn-hero-outline:hover {
+            background: #F4F8FC;
+            border-color: #B5D4F4;
+            color: #185FA5;
+        }
+
+        .se-btn-hero-outline svg {
+            width: 15px;
+            height: 15px;
+            stroke: currentColor;
+            fill: none;
+        }
+
+    .se-hero-greeting {
+        font-size: 13px;
+        color: #AAB4C0;
+    }
+
+        .se-hero-greeting strong {
+            color: #3D4F63;
+            font-weight: 600;
+        }
+
+    /* Section titles */
+    .se-section-title {
+        font-size: 18px;
+        font-weight: 600;
+        color: #0F1B2D;
+        text-align: center;
+        margin-bottom: 20px;
+    }
+
+    /* Feature cards */
+    .se-features {
+        margin-bottom: 40px;
+        margin-top: 40px;
+    }
+
+    .se-features-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 14px;
+    }
+
+    .se-feat-card {
+        border: 1px solid #E2E8F0;
+        border-radius: 14px;
+        background: #fff;
+        padding: 18px;
+        transition: box-shadow 0.15s, border-color 0.15s;
+        text-decoration: none;
+        display: block;
+        position: relative;
+    }
+
+        .se-feat-card:hover {
+            border-color: #B5D4F4;
+            background: #F4F8FC;
+        }
+
+    .se-feat-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 12px;
+    }
+
+        .se-feat-icon svg {
+            width: 20px;
+            height: 20px;
+            fill: none;
+            stroke: currentColor;
+            stroke-width: 1.8;
+        }
+
+    .se-feat-icon-blue {
+        background: #E6F1FB;
+        color: #185FA5;
+    }
+
+    .se-feat-icon-green {
+        background: #EAF3DE;
+        color: #3B6D11;
+    }
+
+    .se-feat-icon-amber {
+        background: #FAEEDA;
+        color: #854F0B;
+    }
+
+    .se-feat-icon-red {
+        background: #FCEBEB;
+        color: #A32D2D;
+    }
+
+    .se-feat-title {
+        font-size: 13px;
+        font-weight: 600;
+        color: #0F1B2D;
+        margin-bottom: 6px;
+    }
+
+    .se-feat-desc {
+        font-size: 12px;
+        color: #AAB4C0;
+        line-height: 1.6;
+        margin: 0;
+    }
+
+    /* Divider */
+    .se-divider {
+        border: none;
+        border-top: 1px solid #E2E8F0;
+        margin: 32px 0;
+    }
+
+    /* Steps */
+    .se-steps {
+        padding-bottom: 48px;
+    }
+
+    .se-steps-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 14px;
+    }
+
+    .se-step {
+        text-align: center;
+        padding: 24px 18px;
+        border: 1px solid #E2E8F0;
+        border-radius: 14px;
+        background: #fff;
+    }
+
+    .se-step-num {
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        background: #E6F1FB;
+        color: #185FA5;
+        font-size: 16px;
+        font-weight: 700;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 14px;
+    }
+
+    .se-step-title {
+        font-size: 13px;
+        font-weight: 600;
+        color: #0F1B2D;
+        margin-bottom: 6px;
+    }
+
+    .se-step-desc {
+        font-size: 12px;
+        color: #AAB4C0;
+        line-height: 1.6;
+        margin: 0;
+    }
+
+    @@media (max-width: 768px) {
+        .se-features-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+
+        .se-steps-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .se-hero h1 {
+            font-size: 24px;
+        }
+    }
+
+    @@media (max-width: 480px) {
+        .se-features-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    /* ===== Animations ===== */
+    @@keyframes seFadeUp {
+        from {
+            opacity: 0;
+            transform: translateY(18px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    @@keyframes seFadeIn {
+        from {
+            opacity: 0;
+        }
+
+        to {
+            opacity: 1;
+        }
+    }
+
+    @@keyframes sePulseBadge {
+        0%, 100% {
+            transform: scale(1);
+        }
+
+        50% {
+            transform: scale(1.05);
+        }
+    }
+
+    /* Hero entrance */
+    .se-hero-badge {
+        animation: seFadeUp 0.6s ease-out both, sePulseBadge 2.4s ease-in-out 1.2s infinite;
+    }
+
+    .se-hero h1 {
+        animation: seFadeUp 0.6s ease-out 0.1s both;
+    }
+
+    .se-hero-desc {
+        animation: seFadeUp 0.6s ease-out 0.2s both;
+    }
+
+    .se-hero-actions {
+        animation: seFadeUp 0.6s ease-out 0.3s both;
+    }
+
+    .se-hero-greeting {
+        animation: seFadeIn 0.8s ease-out 0.5s both;
+    }
+
+    /* Button micro-interactions */
+    .se-btn-hero-primary,
+    .se-btn-hero-outline {
+        transition: background 0.12s, border-color 0.12s, color 0.12s, transform 0.15s, box-shadow 0.15s;
+    }
+
+        .se-btn-hero-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(74,144,226,0.30);
+        }
+
+        .se-btn-hero-outline:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 14px rgba(15,27,45,0.08);
+        }
+
+    /* Scroll-reveal targets (animated in via JS toggling .se-in-view) */
+    .se-feat-card,
+    .se-step {
+        opacity: 0;
+        transform: translateY(24px);
+        transition: opacity 0.55s ease-out, transform 0.55s ease-out, box-shadow 0.2s, border-color 0.2s;
+    }
+
+        .se-feat-card.se-in-view,
+        .se-step.se-in-view {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+    /* Staggered delay per card within each grid */
+    .se-features-grid .se-feat-card:nth-child(1) {
+        transition-delay: 0.05s;
+    }
+
+    .se-features-grid .se-feat-card:nth-child(2) {
+        transition-delay: 0.15s;
+    }
+
+    .se-features-grid .se-feat-card:nth-child(3) {
+        transition-delay: 0.25s;
+    }
+
+    .se-features-grid .se-feat-card:nth-child(4) {
+        transition-delay: 0.35s;
+    }
+
+    .se-steps-grid .se-step:nth-child(1) {
+        transition-delay: 0.05s;
+    }
+
+    .se-steps-grid .se-step:nth-child(2) {
+        transition-delay: 0.15s;
+    }
+
+    .se-steps-grid .se-step:nth-child(3) {
+        transition-delay: 0.25s;
+    }
+
+    /* Feature card hover lift */
+    .se-feat-card {
+        transform-origin: center;
+    }
+
+        .se-feat-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 24px rgba(15,27,45,0.08);
+        }
+
+            .se-feat-card:hover .se-feat-icon {
+                transform: scale(1.08);
+            }
+
+    .se-feat-icon {
+        transition: transform 0.2s ease-out;
+    }
+
+    /* Step number pop on hover */
+    .se-step:hover .se-step-num {
+        transform: scale(1.08);
+    }
+
+    .se-step-num {
+        transition: transform 0.2s ease-out;
+    }
+
+    /* Respect reduced motion preference */
+    @@media (prefers-reduced-motion: reduce) {
+        .se-hero-badge,
+        .se-hero h1,
+        .se-hero-desc,
+        .se-hero-actions,
+        .se-hero-greeting,
+        .se-feat-card,
+        .se-step {
+            animation: none !important;
+            transition: none !important;
+            opacity: 1 !important;
+            transform: none !important;
+        }
+    }
+
+    .se-mock {
+        background: #fff;
+        border: 1px solid #E2E8F0;
+        border-radius: 16px;
+        box-shadow: 0 12px 40px rgba(15,27,45,0.08);
+        overflow: hidden;
+        animation: seFadeUp 0.6s ease-out 0.25s both;
+    }
+
+    .se-mock-topbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 10px 14px;
+        border-bottom: 1px solid #E2E8F0;
+        background: #F8FAFC;
+    }
+
+    .se-mock-brand {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        font-size: 12px;
+        font-weight: 700;
+        color: #0F1B2D;
+    }
+
+        .se-mock-brand svg {
+            width: 16px;
+            height: 16px;
+            stroke: #4A90E2;
+            fill: none;
+        }
+
+    .se-mock-topbar-right {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .se-mock-bell {
+        position: relative;
+        color: #AAB4C0;
+        display: flex;
+    }
+
+        .se-mock-bell svg {
+            width: 14px;
+            height: 14px;
+            stroke: currentColor;
+            fill: none;
+        }
+
+        .se-mock-bell::after {
+            content: '';
+            position: absolute;
+            top: -1px;
+            right: -1px;
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: #E04F5F;
+            border: 1.5px solid #fff;
+        }
+
+    .se-mock-user {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        font-size: 11px;
+        font-weight: 600;
+        color: #1A2A3A;
+    }
+
+    .se-mock-user-avatar {
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        background: #E6F1FB;
+        color: #185FA5;
+        font-size: 9px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .se-mock-body {
+        display: flex;
+        height: 360px;
+    }
+
+    .se-mock-sidebar {
+        width: 110px;
+        border-right: 1px solid #E2E8F0;
+        background: #FBFCFE;
+        padding: 10px 8px;
+        flex-shrink: 0;
+    }
+
+    .se-mock-side-item {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 10.5px;
+        color: #6B7B8D;
+        padding: 7px 8px;
+        border-radius: 7px;
+        margin-bottom: 2px;
+    }
+
+        .se-mock-side-item svg {
+            width: 12px;
+            height: 12px;
+            stroke: currentColor;
+            fill: none;
+            flex-shrink: 0;
+        }
+
+        .se-mock-side-item.active {
+            background: #E6F1FB;
+            color: #185FA5;
+            font-weight: 600;
+        }
+
+    .se-mock-panel-title {
+        font-size: 12px;
+        font-weight: 600;
+        color: #0F1B2D;
+        padding: 12px 14px 8px;
+    }
+
+    .se-mock-docs {
+        flex: 1;
+        border-right: 1px solid #E2E8F0;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .se-mock-search {
+        margin: 0 14px 10px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .se-mock-search-box {
+        flex: 1;
+        font-size: 10.5px;
+        color: #AAB4C0;
+        background: #F4F8FC;
+        border: 1px solid #E2E8F0;
+        border-radius: 7px;
+        padding: 6px 9px;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }
+
+        .se-mock-search-box svg {
+            width: 11px;
+            height: 11px;
+            stroke: currentColor;
+            fill: none;
+        }
+
+    .se-mock-add {
+        width: 24px;
+        height: 24px;
+        background: #4A90E2;
+        border-radius: 7px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+
+        .se-mock-add svg {
+            width: 12px;
+            height: 12px;
+            stroke: #fff;
+            fill: none;
+        }
+
+    .se-mock-doc-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 7px 14px;
+    }
+
+    .se-mock-doc-ic {
+        width: 26px;
+        height: 26px;
+        border-radius: 6px;
+        background: #FCEBEB;
+        color: #C0392B;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+
+        .se-mock-doc-ic.docx {
+            background: #E6F1FB;
+            color: #185FA5;
+        }
+
+        .se-mock-doc-ic svg {
+            width: 12px;
+            height: 12px;
+            stroke: currentColor;
+            fill: none;
+        }
+
+    .se-mock-doc-name {
+        font-size: 10.5px;
+        font-weight: 600;
+        color: #1A2A3A;
+        line-height: 1.3;
+    }
+
+    .se-mock-doc-meta {
+        font-size: 9.5px;
+        color: #AAB4C0;
+    }
+
+    .se-mock-doc-link {
+        margin-top: auto;
+        font-size: 10.5px;
+        color: #4A90E2;
+        font-weight: 600;
+        padding: 10px 14px;
+    }
+
+    .se-mock-chat {
+        flex: 1.3;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .se-mock-chat-body {
+        flex: 1;
+        padding: 0 14px;
+        overflow: hidden;
+    }
+
+    .se-mock-bubble-user {
+        background: #4A90E2;
+        color: #fff;
+        font-size: 10.5px;
+        padding: 8px 12px;
+        border-radius: 10px 10px 2px 10px;
+        max-width: 85%;
+        margin-left: auto;
+        margin-bottom: 10px;
+        line-height: 1.5;
+    }
+
+    .se-mock-bubble-ai {
+        background: #F4F8FC;
+        border: 1px solid #E2E8F0;
+        font-size: 10.5px;
+        color: #3D4F63;
+        padding: 9px 12px;
+        border-radius: 10px 10px 10px 2px;
+        line-height: 1.6;
+        margin-bottom: 8px;
+    }
+
+    .se-mock-cites {
+        font-size: 9.5px;
+        color: #4A90E2;
+        line-height: 1.8;
+    }
+
+    .se-mock-chat-input {
+        margin: 10px 14px 14px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .se-mock-chat-input-box {
+        flex: 1;
+        font-size: 10.5px;
+        color: #AAB4C0;
+        background: #F4F8FC;
+        border: 1px solid #E2E8F0;
+        border-radius: 8px;
+        padding: 8px 10px;
+    }
+
+    .se-mock-send {
+        width: 28px;
+        height: 28px;
+        background: #4A90E2;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+
+        .se-mock-send svg {
+            width: 13px;
+            height: 13px;
+            stroke: #fff;
+            fill: none;
+        }
+
+    @@media (max-width: 900px) {
+        .se-hero-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .se-hero {
+            text-align: center;
+        }
+
+        .se-hero-desc {
+            margin: 0 auto 28px;
+        }
+
+        .se-hero-actions {
+            justify-content: center;
+        }
+
+        .se-mock-body {
+            height: auto;
+        }
+
+        .se-mock-sidebar {
+            display: none;
+        }
+    }
+</style>
+
+@{
+    var role = HttpContext.Session.GetString("Role") ?? string.Empty;
+}
+
+<!-- Hero -->
+<!-- Hero -->
+<div class="se-hero-grid">
+    <div class="se-hero">
+        <div class="se-hero-badge">✨ RAG-powered learning</div>
+        <h1>
+            Học thông minh hơn với<br>
+            <span>SmartEdu AI</span>
+        </h1>
+        <p class="se-hero-desc">
+            Hệ thống hỏi đáp dựa trên tài liệu học tập của bạn.
+            Upload PDF/DOCX, đặt câu hỏi, nhận câu trả lời chính xác có trích dẫn nguồn.
+        </p>
+
+        <div class="se-hero-actions">
+            <a asp-page="/Chat/Index" class="se-btn-hero-primary">
+                <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
+                Bắt đầu Chat RAG
             </a>
-        }
 
-        @* My Documents visible to Students only *@
-        @if (!string.IsNullOrEmpty(role) && role.Equals("Student", System.StringComparison.OrdinalIgnoreCase))
-        {
-            <a asp-page="/Documents/MyDocuments" class="btn btn-outline-secondary px-4">
-                📁 Xem tài liệu
-            </a>
-        }
+            @if (!string.IsNullOrEmpty(role) && (role.Equals("Admin", System.StringComparison.OrdinalIgnoreCase) || role.Equals("Lecturer", System.StringComparison.OrdinalIgnoreCase)))
+            {
+                <a asp-page="/Documents/UploadDocument" class="se-btn-hero-outline">
+                    <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" /></svg>
+                    Upload tài liệu
+                </a>
+            }
 
-        @if (!string.IsNullOrEmpty(role) && role.Equals("Admin", System.StringComparison.OrdinalIgnoreCase))
-        {
-            <a asp-page="/Subjects/Index" class="btn btn-outline-primary px-4">⚙️ Manage Subjects</a>
-            <a asp-page="/Lecturers/Index" class="btn btn-outline-primary px-4">👩‍🏫 Manage Lecturers</a>
-        }
+            @if (!string.IsNullOrEmpty(role) && role.Equals("Student", System.StringComparison.OrdinalIgnoreCase))
+            {
+                <a asp-page="/Documents/MyDocuments" class="se-btn-hero-outline">
+                    <svg viewBox="0 0 24 24"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" /></svg>
+                    Xem tài liệu
+                </a>
+            }
+
+            @if (!string.IsNullOrEmpty(role) && role.Equals("Admin", System.StringComparison.OrdinalIgnoreCase))
+            {
+                <a asp-page="/Subjects/Index" class="se-btn-hero-outline">
+                    <svg viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" /><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" /></svg>
+                    Manage Subjects
+                </a>
+                <a asp-page="/Lecturers/Index" class="se-btn-hero-outline">
+                    <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>
+                    Manage Lecturers
+                </a>
+            }
+        </div>
+
+        <div class="se-hero-greeting">
+            Xin chào, <strong>@HttpContext.Session.GetString("Username")</strong>
+        </div>
     </div>
 
-    <div class="d-flex justify-content-center mb-3">
-        <p class="text-muted">Xin chào, <strong>@HttpContext.Session.GetString("Username")</strong></p>
+    <!-- Mockup minh họa (tĩnh, chỉ để trang trí) -->
+    <div class="se-mock" aria-hidden="true">
+        <div class="se-mock-topbar">
+            <div class="se-mock-brand">
+                <svg viewBox="0 0 24 24" stroke-width="1.8"><path d="M22 10v6M2 10l10-5 10 5-10 5z" /><path d="M6 12v5c3 3 9 3 12 0v-5" /></svg>
+                SmartEdu.RazorWeb
+            </div>
+            <div class="se-mock-topbar-right">
+                <span class="se-mock-bell">
+                    <svg viewBox="0 0 24 24" stroke-width="1.8"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.73 21a2 2 0 0 1-3.46 0" /></svg>
+                </span>
+                <span class="se-mock-user">
+                    <span class="se-mock-user-avatar">A</span>
+                    admin
+                </span>
+            </div>
+        </div>
+
+        <div class="se-mock-body">
+            <div class="se-mock-sidebar">
+                <div class="se-mock-side-item active">
+                    <svg viewBox="0 0 24 24" stroke-width="1.8"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
+                    Chat RAG
+                </div>
+                <div class="se-mock-side-item">
+                    <svg viewBox="0 0 24 24" stroke-width="1.8"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /></svg>
+                    Tài liệu
+                </div>
+                <div class="se-mock-side-item">
+                    <svg viewBox="0 0 24 24" stroke-width="1.8"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" /></svg>
+                    Môn học
+                </div>
+                <div class="se-mock-side-item">
+                    <svg viewBox="0 0 24 24" stroke-width="1.8"><circle cx="9" cy="7" r="4" /></svg>
+                    Giảng viên
+                </div>
+                <div class="se-mock-side-item">
+                    <svg viewBox="0 0 24 24" stroke-width="1.8"><line x1="18" y1="20" x2="18" y2="10" /></svg>
+                    Nghiên cứu RBL
+                </div>
+                <div class="se-mock-side-item">
+                    <svg viewBox="0 0 24 24" stroke-width="1.8"><circle cx="12" cy="12" r="3" /></svg>
+                    Cài đặt
+                </div>
+            </div>
+
+            <div class="se-mock-docs">
+                <div class="se-mock-panel-title">Chat RAG</div>
+                <div class="se-mock-search">
+                    <div class="se-mock-search-box">
+                        <svg viewBox="0 0 24 24" stroke-width="2"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
+                        Tìm kiếm tài liệu...
+                    </div>
+                    <div class="se-mock-add">
+                        <svg viewBox="0 0 24 24" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
+                    </div>
+                </div>
+
+                <div class="se-mock-doc-item">
+                    <div class="se-mock-doc-ic">
+                        <svg viewBox="0 0 24 24" stroke-width="1.8"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /></svg>
+                    </div>
+                    <div>
+                        <div class="se-mock-doc-name">Giáo trình Trí tuệ nhân tạo.pdf</div>
+                        <div class="se-mock-doc-meta">PDF &middot; 12.4 MB</div>
+                    </div>
+                </div>
+                <div class="se-mock-doc-item">
+                    <div class="se-mock-doc-ic docx">
+                        <svg viewBox="0 0 24 24" stroke-width="1.8"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /></svg>
+                    </div>
+                    <div>
+                        <div class="se-mock-doc-name">Deep Learning cơ bản.docx</div>
+                        <div class="se-mock-doc-meta">DOCX &middot; 3.1 MB</div>
+                    </div>
+                </div>
+                <div class="se-mock-doc-item">
+                    <div class="se-mock-doc-ic">
+                        <svg viewBox="0 0 24 24" stroke-width="1.8"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /></svg>
+                    </div>
+                    <div>
+                        <div class="se-mock-doc-name">Xử lý ngôn ngữ tự nhiên.pdf</div>
+                        <div class="se-mock-doc-meta">PDF &middot; 5.6 MB</div>
+                    </div>
+                </div>
+                <div class="se-mock-doc-item">
+                    <div class="se-mock-doc-ic">
+                        <svg viewBox="0 0 24 24" stroke-width="1.8"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /></svg>
+                    </div>
+                    <div>
+                        <div class="se-mock-doc-name">Thị giác máy tính.pdf</div>
+                        <div class="se-mock-doc-meta">PDF &middot; 8.2 MB</div>
+                    </div>
+                </div>
+
+                <div class="se-mock-doc-link">Xem tất cả tài liệu</div>
+            </div>
+
+            <div class="se-mock-chat">
+                <div class="se-mock-panel-title">Hỏi đáp với tài liệu</div>
+                <div class="se-mock-chat-body">
+                    <div class="se-mock-bubble-user">Các thành phần chính của mạng nơ-ron là gì?</div>
+                    <div class="se-mock-bubble-ai">
+                        Các thành phần chính của mạng nơ-ron bao gồm: lớp đầu vào, các lớp ẩn, lớp đầu ra, trọng số (weights), độ lệch (bias), và hàm kích hoạt (activation function).
+                        <div class="se-mock-cites">
+                            Nguồn tham khảo:<br>
+                            1. Giáo trình Trí tuệ nhân tạo.pdf — Trang 45<br>
+                            2. Deep Learning cơ bản.docx — Trang 23
+                        </div>
+                    </div>
+                </div>
+                <div class="se-mock-chat-input">
+                    <div class="se-mock-chat-input-box">Nhập câu hỏi của bạn...</div>
+                    <div class="se-mock-send">
+                        <svg viewBox="0 0 24 24" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13" /><polygon points="22 2 15 22 11 13 2 9 22 2" /></svg>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
+</div>
+    <div class="se-hero-badge">✨ RAG-powered learning</div>
 
 @section Scripts {
     <script src="~/lib/microsoft/signalr/dist/browser/signalr.min.js" asp-append-version="false"></script>
     <script src="~/js/signalr-subject.js" asp-append-version="true"></script>
+    <script>
+        (function () {
+        var targets = document.querySelectorAll('.se-feat-card, .se-step');
+        if (!('IntersectionObserver' in window)) {
+        targets.forEach(function (el) { el.classList.add('se-in-view'); });
+        return;
+        }
+        var observer = new IntersectionObserver(function (entries) {
+        entries.forEach(function (entry) {
+        if (entry.isIntersecting) {
+        entry.target.classList.add('se-in-view');
+        observer.unobserve(entry.target);
+        }
+        });
+        }, { threshold: 0.15 });
+        targets.forEach(function (el) { observer.observe(el); });
+        })();
+    </script>
 }
 
-</div>
+<!-- Features -->
+<div class="se-features">
+    <h2 class="se-section-title">Tính năng chính</h2>
+    <div class="se-features-grid">
+        <a asp-page="/Documents/Index" class="se-feat-card">
+            <div class="se-feat-icon se-feat-icon-blue">
+                <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /></svg>
+            </div>
+            <div class="se-feat-title">Quản lý tài liệu</div>
+            <p class="se-feat-desc">Upload PDF/DOCX, tự động chunking và embedding theo môn học.</p>
+        </a>
 
-@* Features *@
-<div class="container mb-5 mt-5">
-    <h2 class="text-center fw-semibold mb-4">Tính năng chính</h2>
-    <div class="row g-3">
-        <div class="col-md-3 col-sm-6">
-            <div class="card h-100 border shadow-none">
-                <div class="card-body">
-                    <div class="bg-primary bg-opacity-10 rounded-2 d-inline-flex
-                        p-2 mb-3">
-                        <span style="font-size:22px">📄</span>
-                    </div>
-                    <h5 class="card-title fw-semibold">Quản lý tài liệu</h5>
-                    <p class="card-text text-muted small">
-                        Upload PDF/DOCX, tự động chunking và embedding theo môn học.
-                    </p>
-                    <a asp-page="/Documents/Index" class="stretched-link"></a>
-                </div>
+        <a asp-page="/Chat/Index" class="se-feat-card">
+            <div class="se-feat-icon se-feat-icon-green">
+                <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
             </div>
-        </div>
-        <div class="col-md-3 col-sm-6">
-            <div class="card h-100 border shadow-none">
-                <div class="card-body">
-                    <div class="bg-success bg-opacity-10 rounded-2 d-inline-flex
-                        p-2 mb-3">
-                        <span style="font-size:22px">🤖</span>
-                    </div>
-                    <h5 class="card-title fw-semibold">Chatbot RAG</h5>
-                    <p class="card-text text-muted small">
-                        Hỏi đáp thông minh, trích dẫn nguồn, lưu lịch sử theo phiên.
-                    </p>
-                    <a asp-page="/Chat/Index" class="stretched-link"></a>
-                </div>
+            <div class="se-feat-title">Chatbot RAG</div>
+            <p class="se-feat-desc">Hỏi đáp thông minh, trích dẫn nguồn, lưu lịch sử theo phiên.</p>
+        </a>
+
+        <div class="se-feat-card">
+            <div class="se-feat-icon se-feat-icon-amber">
+                <svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10" /><line x1="12" y1="20" x2="12" y2="4" /><line x1="6" y1="20" x2="6" y2="14" /></svg>
             </div>
+            <div class="se-feat-title">Nghiên cứu RBL</div>
+            <p class="se-feat-desc">So sánh RAG vs Fine-tuning, benchmark chunking strategies.</p>
         </div>
-        <div class="col-md-3 col-sm-6">
-            <div class="card h-100 border shadow-none">
-                <div class="card-body">
-                    <div class="bg-warning bg-opacity-10 rounded-2 d-inline-flex
-                        p-2 mb-3">
-                        <span style="font-size:22px">📊</span>
-                    </div>
-                    <h5 class="card-title fw-semibold">Nghiên cứu RBL</h5>
-                    <p class="card-text text-muted small">
-                        So sánh RAG vs Fine-tuning, benchmark chunking strategies.
-                    </p>
-                </div>
+
+        <a asp-page="/Subjects/Index" class="se-feat-card">
+            <div class="se-feat-icon se-feat-icon-red">
+                <svg viewBox="0 0 24 24"><path d="M22 10v6M2 10l10-5 10 5-10 5z" /><path d="M6 12v5c3 3 9 3 12 0v-5" /></svg>
             </div>
-        </div>
-        <div class="col-md-3 col-sm-6">
-            <div class="card h-100 border shadow-none">
-                <div class="card-body">
-                    <div class="bg-danger bg-opacity-10 rounded-2 d-inline-flex
-                        p-2 mb-3">
-                        <span style="font-size:22px">🎓</span>
-                    </div>
-                    <h5 class="card-title fw-semibold">Quản lý môn học</h5>
-                    <p class="card-text text-muted small">
-                        Tổ chức tài liệu theo môn học, chương và chủ đề.
-                    </p>
-                    <a asp-page="/Subjects/Index" class="stretched-link"></a>
-                </div>
-            </div>
-        </div>
+            <div class="se-feat-title">Quản lý môn học</div>
+            <p class="se-feat-desc">Tổ chức tài liệu theo môn học, chương và chủ đề.</p>
+        </a>
     </div>
 </div>
 
-<hr class="my-4" />
+<hr class="se-divider" />
 
-@* Steps *@
-<div class="container pb-5">
-    <h2 class="text-center fw-semibold mb-4">Bắt đầu trong 3 bước</h2>
-    <div class="row g-3 text-center">
-        <div class="col-md-4">
-            <div class="bg-primary bg-opacity-10 rounded-circle d-inline-flex
-                align-items-center justify-content-center mb-3"
-                 style="width:48px;height:48px;font-weight:500">
-                1
-            </div>
-            <h5 class="fw-semibold">Tạo môn học</h5>
-            <p class="text-muted small">Thêm môn học và mô tả nội dung cần học</p>
+<!-- Steps -->
+<div class="se-steps">
+    <h2 class="se-section-title">Bắt đầu trong 3 bước</h2>
+    <div class="se-steps-grid">
+        <div class="se-step">
+            <div class="se-step-num">1</div>
+            <div class="se-step-title">Tạo môn học</div>
+            <p class="se-step-desc">Thêm môn học và mô tả nội dung cần học</p>
         </div>
-        <div class="col-md-4">
-            <div class="bg-primary bg-opacity-10 rounded-circle d-inline-flex
-                align-items-center justify-content-center mb-3"
-                 style="width:48px;height:48px;font-weight:500">
-                2
-            </div>
-            <h5 class="fw-semibold">Upload tài liệu</h5>
-            <p class="text-muted small">Upload file PDF/DOCX, hệ thống tự động xử lý</p>
+        <div class="se-step">
+            <div class="se-step-num">2</div>
+            <div class="se-step-title">Upload tài liệu</div>
+            <p class="se-step-desc">Upload file PDF/DOCX, hệ thống tự động xử lý</p>
         </div>
-        <div class="col-md-4">
-            <div class="bg-primary bg-opacity-10 rounded-circle d-inline-flex
-                align-items-center justify-content-center mb-3"
-                 style="width:48px;height:48px;font-weight:500">
-                3
-            </div>
-            <h5 class="fw-semibold">Hỏi đáp AI</h5>
-            <p class="text-muted small">Đặt câu hỏi, nhận câu trả lời từ tài liệu của bạn</p>
+        <div class="se-step">
+            <div class="se-step-num">3</div>
+            <div class="se-step-title">Hỏi đáp AI</div>
+            <p class="se-step-desc">Đặt câu hỏi, nhận câu trả lời từ tài liệu của bạn</p>
         </div>
     </div>
 </div>
-

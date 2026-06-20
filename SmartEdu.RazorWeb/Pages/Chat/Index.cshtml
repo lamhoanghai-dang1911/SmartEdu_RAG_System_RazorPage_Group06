@@ -10,33 +10,580 @@
 
 <input type="hidden" id="currentUserId" value="@HttpContext.Session.GetInt32("UserId")" />
 
-<div class="row">
-    <div class="col-md-3 border-end" style="height:80vh; overflow:auto;">
-        <div class="p-2">
-            <button id="btnNewChat" class="btn btn-outline-primary w-100 mb-2">+ New Chat</button>
-            <div id="sessionsList">
-                @foreach (var s in Model.Sessions)
-                {
-                    <div class="d-flex justify-content-between align-items-center session-item p-2 mb-1" data-sessionid="@s.SessionId" style="cursor:pointer;">
-                        <div>
-                            <div><strong>@(string.IsNullOrEmpty(s.Title) ? "(No title)" : s.Title)</strong></div>
-                            @if (!string.IsNullOrEmpty(s.SubjectName))
-                            {
-                                <span class="badge bg-secondary">@s.SubjectName</span>
-                            }
-                        </div>
-                        <div>
-                            <button class="btn btn-sm btn-danger btn-delete-session" title="Delete" data-sessionid="@s.SessionId">🗑</button>
-                        </div>
-                    </div>
-                }
+<style>
+    .se-chat-shell {
+        display: flex;
+        height: calc(100vh - 120px);
+        min-height: 500px;
+        border: 1px solid #E2E8F0;
+        border-radius: 16px;
+        overflow: hidden;
+        font-size: 13px;
+        background: #fff;
+    }
+
+    /* ── Sidebar ── */
+    .se-sidebar {
+        width: 240px;
+        flex-shrink: 0;
+        border-right: 1px solid #E2E8F0;
+        display: flex;
+        flex-direction: column;
+        background: #F8FAFC;
+    }
+
+    .se-sidebar-header {
+        padding: 14px 12px;
+        border-bottom: 1px solid #E2E8F0;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .se-sidebar-logo {
+        width: 28px;
+        height: 28px;
+        background: #4A90E2;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+
+        .se-sidebar-logo svg {
+            width: 15px;
+            height: 15px;
+            fill: #fff;
+        }
+
+    .se-sidebar-brand {
+        font-size: 13px;
+        font-weight: 600;
+        color: #0F1B2D;
+    }
+
+    #btnNewChat {
+        margin: 10px 10px 6px;
+        padding: 8px 12px;
+        border: 1px solid #D1DCE8;
+        border-radius: 10px;
+        background: #fff;
+        color: #1A2A3A;
+        font-size: 12px;
+        font-weight: 500;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        width: calc(100% - 20px);
+        transition: background 0.12s, border-color 0.12s;
+    }
+
+        #btnNewChat:hover {
+            background: #EEF4FB;
+            border-color: #4A90E2;
+            color: #4A90E2;
+        }
+
+        #btnNewChat svg {
+            width: 15px;
+            height: 15px;
+            stroke: currentColor;
+            fill: none;
+        }
+
+    #sessionsList {
+        flex: 1;
+        overflow-y: auto;
+        padding: 4px 8px 8px;
+    }
+
+    .session-item {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 8px 8px;
+        border-radius: 8px;
+        cursor: pointer;
+        margin-bottom: 2px;
+        transition: background 0.1s;
+    }
+
+        .session-item:hover {
+            background: #EEF4FB;
+        }
+
+        .session-item.active {
+            background: #DBEEFF;
+        }
+
+            .session-item.active .se-session-title {
+                color: #185FA5;
+            }
+
+    .se-session-info {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .se-session-title {
+        font-size: 12px;
+        font-weight: 500;
+        color: #1A2A3A;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .se-session-badge {
+        font-size: 10px;
+        padding: 2px 7px;
+        border-radius: 20px;
+        background: #DBEEFF;
+        color: #185FA5;
+        white-space: nowrap;
+        margin-top: 3px;
+        display: inline-block;
+    }
+
+    .btn-delete-session {
+        background: none;
+        border: none;
+        cursor: pointer;
+        color: #AAB4C0;
+        padding: 3px;
+        border-radius: 5px;
+        line-height: 1;
+        opacity: 0;
+        transition: opacity 0.1s, color 0.1s;
+        flex-shrink: 0;
+    }
+
+    .session-item:hover .btn-delete-session {
+        opacity: 1;
+    }
+
+    .btn-delete-session:hover {
+        color: #C0392B;
+    }
+
+    .btn-delete-session svg {
+        width: 13px;
+        height: 13px;
+        stroke: currentColor;
+        fill: none;
+        display: block;
+    }
+
+    /* ── Main ── */
+    .se-main {
+        flex: 1;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .se-topbar {
+        padding: 10px 16px;
+        border-bottom: 1px solid #E2E8F0;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        background: #fff;
+        flex-shrink: 0;
+    }
+
+    .se-topbar-label {
+        font-size: 12px;
+        color: #6B7B8D;
+    }
+
+    #subjectSelect {
+        font-size: 12px;
+        padding: 5px 10px;
+        border: 1px solid #D1DCE8;
+        border-radius: 8px;
+        background: #F8FAFC;
+        color: #1A2A3A;
+        cursor: pointer;
+        outline: none;
+    }
+
+        #subjectSelect:focus {
+            border-color: #4A90E2;
+        }
+
+    #chatWindow {
+        flex: 1;
+        overflow-y: auto;
+        padding: 20px 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        background: #F4F8FC;
+    }
+
+    .message-row {
+        display: flex;
+        margin-bottom: 0;
+    }
+
+        .message-row.row-user {
+            justify-content: flex-end;
+        }
+
+        .message-row.row-assistant {
+            justify-content: flex-start;
+            align-items: flex-end;
+            gap: 8px;
+        }
+
+    .se-avatar {
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        background: #DBEEFF;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+
+        .se-avatar svg {
+            width: 14px;
+            height: 14px;
+            stroke: #4A90E2;
+            fill: none;
+        }
+
+    .bubble-user {
+        background: #4A90E2;
+        color: #fff;
+        border-radius: 16px;
+        border-bottom-right-radius: 4px;
+        padding: 9px 14px;
+        max-width: 68%;
+        font-size: 13px;
+        line-height: 1.55;
+    }
+
+    .bubble-assistant {
+        background: #fff;
+        color: #1A2A3A;
+        border: 1px solid #E2E8F0;
+        border-radius: 16px;
+        border-bottom-left-radius: 4px;
+        padding: 9px 14px;
+        max-width: 68%;
+        font-size: 13px;
+        line-height: 1.55;
+    }
+
+    .message-meta {
+        font-size: 11px;
+        color: #AAB4C0;
+        margin-top: 4px;
+        padding-left: 36px;
+    }
+
+    .se-typing span {
+        display: inline-block;
+        width: 6px;
+        height: 6px;
+        background: #B0BCC8;
+        border-radius: 50%;
+        animation: se-bounce 1.2s infinite;
+        margin: 0 2px;
+    }
+
+        .se-typing span:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .se-typing span:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+    @@keyframes se-bounce {
+        0%, 60%, 100% {
+            transform: translateY(0);
+        }
+
+        30% {
+            transform: translateY(-5px);
+        }
+    }
+
+    .se-empty {
+        margin: auto;
+        text-align: center;
+        color: #AAB4C0;
+        font-size: 13px;
+    }
+
+        .se-empty svg {
+            width: 32px;
+            height: 32px;
+            stroke: #C5D0DC;
+            fill: none;
+            display: block;
+            margin: 0 auto 10px;
+        }
+
+    /* ── Input area ── */
+    .se-input-area {
+        padding: 12px 16px;
+        border-top: 1px solid #E2E8F0;
+        background: #fff;
+        flex-shrink: 0;
+    }
+
+    .se-input-row {
+        display: flex;
+        align-items: flex-end;
+        gap: 8px;
+        border: 1px solid #D1DCE8;
+        border-radius: 12px;
+        padding: 6px 8px;
+        background: #F8FAFC;
+        transition: border-color 0.12s, box-shadow 0.12s;
+    }
+
+        .se-input-row:focus-within {
+            border-color: #4A90E2;
+            background: #fff;
+            box-shadow: 0 0 0 3px rgba(74,144,226,0.10);
+        }
+
+    #inputQuestion {
+        flex: 1;
+        border: none;
+        background: transparent;
+        resize: none;
+        font-size: 13px;
+        color: #1A2A3A;
+        outline: none;
+        min-height: 34px;
+        max-height: 120px;
+        line-height: 1.55;
+        padding: 4px 2px;
+    }
+
+        #inputQuestion::placeholder {
+            color: #AAB4C0;
+        }
+
+    #btnSend {
+        width: 34px;
+        height: 34px;
+        background: #4A90E2;
+        border: none;
+        border-radius: 9px;
+        color: #fff;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        transition: background 0.12s;
+    }
+
+        #btnSend:hover {
+            background: #2f76cc;
+        }
+
+        #btnSend:disabled {
+            background: #B0CAE8;
+            cursor: not-allowed;
+        }
+
+        #btnSend svg {
+            width: 16px;
+            height: 16px;
+            stroke: #fff;
+            fill: none;
+        }
+
+    .se-hint {
+        font-size: 11px;
+        color: #AAB4C0;
+        margin-top: 5px;
+        padding-left: 2px;
+    }
+
+    /* ===== Animations ===== */
+    @@keyframes seShellIn {
+        from {
+            opacity: 0;
+            transform: translateY(12px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    @@keyframes seMsgInRight {
+        from {
+            opacity: 0;
+            transform: translateY(10px) scale(0.97);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+    }
+
+    @@keyframes seMsgInLeft {
+        from {
+            opacity: 0;
+            transform: translateY(10px) scale(0.97);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+    }
+
+    @@keyframes seSessionIn {
+        from {
+            opacity: 0;
+            transform: translateX(-8px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateX(0);
+        }
+    }
+
+    @@keyframes seAvatarPop {
+        from {
+            opacity: 0;
+            transform: scale(0.6);
+        }
+
+        to {
+            opacity: 1;
+            transform: scale(1);
+        }
+    }
+
+    .se-chat-shell {
+        animation: seShellIn 0.4s ease-out both;
+    }
+
+    .session-item {
+        transition: background 0.15s, transform 0.12s;
+    }
+
+        .session-item.se-session-new {
+            animation: seSessionIn 0.35s ease-out both;
+        }
+
+        .session-item:active {
+            transform: scale(0.98);
+        }
+
+    .message-row {
+        animation: seMsgInLeft 0.3s ease-out both;
+    }
+
+        .message-row.row-user {
+            animation-name: seMsgInRight;
+        }
+
+    .se-avatar {
+        animation: seAvatarPop 0.25s ease-out both;
+    }
+
+    #btnSend {
+        transition: background 0.12s, transform 0.12s;
+    }
+
+        #btnSend:active:not(:disabled) {
+            transform: scale(0.9);
+        }
+
+        #btnSend:hover:not(:disabled) {
+            transform: translateY(-1px);
+        }
+
+    #btnNewChat {
+        transition: background 0.12s, border-color 0.12s, color 0.12s, transform 0.12s;
+    }
+
+        #btnNewChat:active {
+            transform: scale(0.97);
+        }
+
+    .se-typing span {
+        animation: se-bounce 1.2s infinite;
+    }
+
+    .se-empty {
+        animation: seShellIn 0.4s ease-out 0.1s both;
+    }
+
+    /* Respect reduced motion preference */
+    @@media (prefers-reduced-motion: reduce) {
+        .se-chat-shell,
+        .session-item,
+        .message-row,
+        .se-avatar,
+        .se-empty {
+            animation: none !important;
+            transition: none !important;
+            opacity: 1 !important;
+            transform: none !important;
+        }
+    }
+</style>
+
+<div class="se-chat-shell">
+
+    <!-- Sidebar -->
+    <div class="se-sidebar">
+        <div class="se-sidebar-header">
+            <div class="se-sidebar-logo">
+                <svg viewBox="0 0 24 24"><path d="M12 3L1 9l11 6 9-4.91V17h2V9L12 3zM5 13.18v4L12 21l7-3.82v-4L12 17l-7-3.82z" /></svg>
             </div>
+            <span class="se-sidebar-brand">SmartEdu</span>
+        </div>
+
+        <button id="btnNewChat">
+            <svg viewBox="0 0 24 24" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
+            Cuộc trò chuyện mới
+        </button>
+
+        <div id="sessionsList">
+            @foreach (var s in Model.Sessions)
+            {
+                <div class="d-flex align-items-center session-item p-0" data-sessionid="@s.SessionId" style="cursor:pointer;">
+                    <div class="se-session-info">
+                        <div class="se-session-title">@(string.IsNullOrEmpty(s.Title) ? "(No title)" : s.Title)</div>
+                        @if (!string.IsNullOrEmpty(s.SubjectName))
+                        {
+                            <span class="se-session-badge">@s.SubjectName</span>
+                        }
+                    </div>
+                    <button class="btn-delete-session" title="Xóa" data-sessionid="@s.SessionId">
+                        <svg viewBox="0 0 24 24" stroke-width="1.8"><polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14H6L5 6" /><path d="M10 11v6M14 11v6" /><path d="M9 6V4h6v2" /></svg>
+                    </button>
+                </div>
+            }
         </div>
     </div>
 
-    <div class="col-md-9" style="height:80vh; display:flex; flex-direction:column;">
-        <div class="p-2 border-bottom">
-            <select id="subjectSelect" class="form-select w-auto">
+    <!-- Main -->
+    <div class="se-main">
+        <div class="se-topbar">
+            <span class="se-topbar-label">Môn học:</span>
+            <select id="subjectSelect">
                 <option value="">Tất cả</option>
                 @foreach (var sub in Model.Subjects)
                 {
@@ -45,57 +592,30 @@
             </select>
         </div>
 
-        <div id="chatWindow" class="p-3 flex-grow-1 overflow-auto" style="background:#f8f9fa;">
-            <div class="text-muted">Chọn hoặc bắt đầu một cuộc trò chuyện.</div>
-        </div>
-
-        <div class="p-2 border-top">
-            <textarea id="inputQuestion" class="form-control" rows="2" placeholder="Nhập câu hỏi... (Shift+Enter xuống dòng)"></textarea>
-            <div class="d-flex mt-2">
-                <button id="btnSend" class="btn btn-primary ms-auto">Gửi</button>
+        <div id="chatWindow">
+            <div class="se-empty">
+                <svg viewBox="0 0 24 24" stroke-width="1.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
+                Chọn hoặc bắt đầu một cuộc trò chuyện.
             </div>
         </div>
+
+        <div class="se-input-area">
+            <div class="se-input-row">
+                <textarea id="inputQuestion" rows="1" placeholder="Nhập câu hỏi... (Shift+Enter để xuống dòng)"></textarea>
+                <button id="btnSend" aria-label="Gửi">
+                    <svg viewBox="0 0 24 24" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13" /><polygon points="22 2 15 22 11 13 2 9 22 2" /></svg>
+                </button>
+            </div>
+            <div class="se-hint">Enter để gửi · Shift+Enter xuống dòng</div>
+        </div>
     </div>
+
 </div>
-
-<style>
-    .bubble-user {
-        background: #0d6efd;
-        color: white;
-        border-radius: 12px;
-        padding: 8px 12px;
-        max-width: 70%;
-        margin-left: auto;
-    }
-
-    .bubble-assistant {
-        background: #e9ecef;
-        color: #212529;
-        border-radius: 12px;
-        padding: 8px 12px;
-        max-width: 70%;
-        margin-right: auto;
-    }
-
-    .message-row {
-        margin-bottom: 10px;
-        display: flex;
-    }
-
-    .message-meta {
-        font-size: 0.8rem;
-        color: #6c757d;
-    }
-
-    .session-item.active {
-        background: #e9ecef;
-    }
-</style>
 
 @section Scripts {
     <script src="~/lib/microsoft/signalr/dist/browser/signalr.js"></script>
     <script>
-        (function(){
+        (function () {
         const chatWindow = document.getElementById('chatWindow');
         const btnNew = document.getElementById('btnNewChat');
         const btnSend = document.getElementById('btnSend');
@@ -107,52 +627,41 @@
         let activeSessionId = '';
         let connection = null;
 
-        function setActiveSession(sessionId){
-        if(connection && activeSessionId){
-        connection.invoke('LeaveSession', activeSessionId).catch(()=>{});
+        function setActiveSession(sessionId) {
+        if (connection && activeSessionId) {
+        connection.invoke('LeaveSession', activeSessionId).catch(() => {});
         }
         activeSessionId = sessionId;
-        if(connection && sessionId){
-        connection.invoke('JoinSession', sessionId).catch(()=>{});
+        if (connection && sessionId) {
+        connection.invoke('JoinSession', sessionId).catch(() => {});
         }
-        document.querySelectorAll('.session-item').forEach(el=>{
-        if(el.dataset.sessionid===sessionId) el.classList.add('active'); else el.classList.remove('active');
+        document.querySelectorAll('.session-item').forEach(el => {
+        if (el.dataset.sessionid === sessionId) el.classList.add('active');
+        else el.classList.remove('active');
         });
         }
 
-        async function loadHistory(sessionId){
+        async function loadHistory(sessionId) {
         const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
         const res = await fetch('?handler=LoadHistory', {
-        method:'POST',
-        headers:{ 'Content-Type':'application/json', 'RequestVerificationToken': token },
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'RequestVerificationToken': token },
         body: JSON.stringify(sessionId)
         });
         const data = await res.json();
-        if(!data.success) return;
+        if (!data.success) return;
         renderMessages(data.messages);
         }
 
-        function renderMessages(messages){
+        function renderMessages(messages) {
         chatWindow.innerHTML = '';
-        messages.forEach(m=>{
-        const row = document.createElement('div'); row.className='message-row';
-        const bubble = document.createElement('div');
-        if(m.role==='user') { bubble.className='bubble-user'; row.style.justifyContent='flex-end'; }
-        else { bubble.className='bubble-assistant'; row.style.justifyContent='flex-start'; }
-        bubble.innerHTML = m.content.replace(/\n/g,'<br/>');
-        row.appendChild(bubble);
-        if(m.role!=='user' && m.sources && m.sources.length){
-        const src = document.createElement('div'); src.className='message-meta'; src.innerText = 'Nguồn: ' + m.sources.join(', ');
-        row.appendChild(src);
-        }
-        chatWindow.appendChild(row);
-        });
+        messages.forEach(m => appendLocalMessage(m.role, m.content, m.sources));
         chatWindow.scrollTop = chatWindow.scrollHeight;
         }
 
-        async function sendQuestion(){
+        async function sendQuestion() {
         const q = input.value.trim();
-        if(!q) return;
+        if (!q) return;
         btnSend.disabled = true;
         appendLocalMessage('user', q);
         const typingId = appendTypingIndicator();
@@ -161,20 +670,20 @@
         const body = { sessionId: activeSessionId || generateGuid(), question: q, subjectId: subjectSelect.value || null };
 
         const res = await fetch('?handler=Ask', {
-        method:'POST',
-        headers:{ 'Content-Type':'application/json', 'RequestVerificationToken': token },
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'RequestVerificationToken': token },
         body: JSON.stringify(body)
         });
         const data = await res.json();
         removeTypingIndicator(typingId);
         btnSend.disabled = false;
-        if(!data.success){
+
+        if (!data.success) {
         appendLocalMessage('assistant', 'Có lỗi khi gọi chat: ' + (data.error || 'unknown'));
         return;
         }
 
-        // if this was a new session, add to sidebar (local, ngay lập tức)
-        if(!activeSessionId){
+        if (!activeSessionId) {
         addSessionToList({ sessionId: data.sessionId, title: q.length > 40 ? q.substring(0, 40) + '...' : q, subjectName: '' });
         setActiveSession(data.sessionId);
         }
@@ -183,84 +692,150 @@
         input.value = '';
         }
 
-        function appendLocalMessage(role, content, sources){
-        const row = document.createElement('div'); row.className='message-row';
-        const bubble = document.createElement('div');
-        if(role==='user') { bubble.className='bubble-user'; row.style.justifyContent='flex-end'; }
-        else { bubble.className='bubble-assistant'; row.style.justifyContent='flex-start'; }
-        bubble.innerHTML = content.replace(/\n/g,'<br/>');
-        row.appendChild(bubble);
-        if(role!=='user' && sources && sources.length){
-        const src = document.createElement('div'); src.className='message-meta'; src.innerText = 'Nguồn: ' + sources.join(', ');
-        row.appendChild(src);
+        function appendLocalMessage(role, content, sources) {
+        const wrapper = document.createElement('div');
+
+        const row = document.createElement('div');
+        row.className = 'message-row ' + (role === 'user' ? 'row-user' : 'row-assistant');
+
+        if (role !== 'user') {
+        const av = document.createElement('div');
+        av.className = 'se-avatar';
+        av.innerHTML = '<svg viewBox="0 0 24 24" stroke-width="1.8"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>';
+        row.appendChild(av);
         }
-        chatWindow.appendChild(row);
+
+        const bubble = document.createElement('div');
+        bubble.className = role === 'user' ? 'bubble-user' : 'bubble-assistant';
+        bubble.innerHTML = content.replace(/\n/g, '<br/>');
+        row.appendChild(bubble);
+        wrapper.appendChild(row);
+
+        if (role !== 'user' && sources && sources.length) {
+        const src = document.createElement('div');
+        src.className = 'message-meta';
+        src.innerText = 'Nguồn: ' + sources.join(', ');
+        wrapper.appendChild(src);
+        }
+
+        chatWindow.appendChild(wrapper);
         chatWindow.scrollTop = chatWindow.scrollHeight;
         }
 
-        function appendTypingIndicator(){
-        const id = 'typing-'+Date.now();
-        const row = document.createElement('div'); row.className='message-row'; row.id = id; row.style.justifyContent='flex-start';
-        const bubble = document.createElement('div'); bubble.className='bubble-assistant'; bubble.innerHTML = '<span class="typing">●●●</span>';
+        function appendTypingIndicator() {
+        const id = 'typing-' + Date.now();
+        const row = document.createElement('div');
+        row.className = 'message-row row-assistant';
+        row.id = id;
+
+        const av = document.createElement('div');
+        av.className = 'se-avatar';
+        av.innerHTML = '<svg viewBox="0 0 24 24" stroke-width="1.8"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>';
+        row.appendChild(av);
+
+        const bubble = document.createElement('div');
+        bubble.className = 'bubble-assistant';
+        bubble.innerHTML = '<div class="se-typing"><span></span><span></span><span></span></div>';
         row.appendChild(bubble);
         chatWindow.appendChild(row);
         chatWindow.scrollTop = chatWindow.scrollHeight;
         return id;
         }
 
-        function removeTypingIndicator(id){
-        const el = document.getElementById(id); if(el) el.remove();
+        function removeTypingIndicator(id) {
+        const el = document.getElementById(id);
+        if (el) el.remove();
         }
 
-        function addSessionToList(s){
-        // Tránh thêm trùng nếu đã tồn tại (ví dụ do SessionCreated bay về sau khi đã add local)
+        function addSessionToList(s) {
         const existed = document.querySelector('.session-item[data-sessionid="' + s.sessionId + '"]');
         if (existed) return;
 
-        const div = document.createElement('div'); div.className='d-flex justify-content-between align-items-center session-item p-2 mb-1'; div.dataset.sessionid = s.sessionId; div.style.cursor='pointer';
-        div.innerHTML = `<div><div><strong>${s.title||'(No title)'}</strong></div>${s.subjectName?`<span class='badge bg-secondary'>${s.subjectName}</span>`:''}</div><div><button class='btn btn-sm btn-danger btn-delete-session' data-sessionid='${s.sessionId}'>🗑</button></div>`;
+        const div = document.createElement('div');
+        div.className = 'session-item se-session-new';
+        div.dataset.sessionid = s.sessionId;
+        div.innerHTML = `
+        <div class="se-session-info">
+        <div class="se-session-title">${s.title || '(No title)'}</div>
+        ${s.subjectName ? `<span class="se-session-badge">${s.subjectName}</span>` : ''}
+        </div>
+        <button class="btn-delete-session" data-sessionid="${s.sessionId}" aria-label="Xóa">
+        <svg viewBox="0 0 24 24" stroke-width="1.8"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+        </button>`;
         sessionsList.prepend(div);
         attachSessionHandlers(div);
         }
 
-        function attachSessionHandlers(el){
-        el.addEventListener('click', ()=>{ setActiveSession(el.dataset.sessionid); loadHistory(el.dataset.sessionid); });
-        const del = el.querySelector('.btn-delete-session'); if(del) del.addEventListener('click', async (e)=>{ e.stopPropagation(); if(!confirm('Xác nhận xóa session?')) return; const token = document.querySelector('input[name="__RequestVerificationToken"]').value; const res = await fetch('?handler=DeleteSession', { method:'POST', headers:{ 'Content-Type':'application/json', 'RequestVerificationToken': token }, body: JSON.stringify(el.dataset.sessionid) }); const d = await res.json(); if(d.success){ el.remove(); if(activeSessionId===el.dataset.sessionid){ activeSessionId=''; chatWindow.innerHTML='Chọn hoặc bắt đầu một cuộc trò chuyện.'; } } });
+        function attachSessionHandlers(el) {
+        el.addEventListener('click', () => {
+        setActiveSession(el.dataset.sessionid);
+        loadHistory(el.dataset.sessionid);
+        });
+        const del = el.querySelector('.btn-delete-session');
+        if (del) del.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        if (!confirm('Xác nhận xóa session?')) return;
+        const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
+        const res = await fetch('?handler=DeleteSession', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'RequestVerificationToken': token },
+        body: JSON.stringify(el.dataset.sessionid)
+        });
+        const d = await res.json();
+        if (d.success) {
+        el.remove();
+        if (activeSessionId === el.dataset.sessionid) {
+        activeSessionId = '';
+        chatWindow.innerHTML = '<div class="se-empty"><svg viewBox="0 0 24 24" stroke-width="1.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>Chọn hoặc bắt đầu một cuộc trò chuyện.</div>';
+        }
+        }
+        });
         }
 
-        function generateGuid(){ return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) { var r = Math.random()*16|0, v = c=='x'? r : (r&0x3|0x8); return v.toString(16); }); }
+        function generateGuid() {
+        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+        var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+        return v.toString(16);
+        });
+        }
 
-        document.querySelectorAll('.session-item').forEach(el=> attachSessionHandlers(el));
+        document.querySelectorAll('.session-item').forEach(el => attachSessionHandlers(el));
 
-        btnNew.addEventListener('click', ()=>{ activeSessionId=''; document.querySelectorAll('.session-item').forEach(x=>x.classList.remove('active')); chatWindow.innerHTML = '<div class="text-muted">Bắt đầu cuộc trò chuyện mới.</div>'; input.focus(); });
+        btnNew.addEventListener('click', () => {
+        activeSessionId = '';
+        document.querySelectorAll('.session-item').forEach(x => x.classList.remove('active'));
+        chatWindow.innerHTML = '<div class="se-empty"><svg viewBox="0 0 24 24" stroke-width="1.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>Bắt đầu cuộc trò chuyện mới.</div>';
+        input.focus();
+        });
+
         btnSend.addEventListener('click', sendQuestion);
-        input.addEventListener('keydown', function(e){ if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); sendQuestion(); } });
+        input.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendQuestion(); }
+        });
 
-        // Setup SignalR
         connection = new signalR.HubConnectionBuilder()
         .withUrl('/chatHub')
         .withAutomaticReconnect()
         .build();
 
-        connection.on('ReceiveAnswer', function(answer){
+        connection.on('ReceiveAnswer', function (answer) {
         appendLocalMessage('assistant', answer);
         });
 
-        connection.on('TitleUpdated', function(sessionId, newTitle){
+        connection.on('TitleUpdated', function (sessionId, newTitle) {
         const el = document.querySelector('.session-item[data-sessionid="' + sessionId + '"]');
         if (el) {
-        const titleEl = el.querySelector('strong');
+        const titleEl = el.querySelector('.se-session-title');
         if (titleEl) titleEl.innerText = newTitle;
         }
         });
 
-        // MỚI: lắng nghe session mới được tạo (kể cả từ tab/trình duyệt khác của cùng user)
-        connection.on('SessionCreated', function(userId, sessionId, title, subjectName){
-        if (userId !== currentUserId) return; // không phải của mình, bỏ qua
+        connection.on('SessionCreated', function (userId, sessionId, title, subjectName) {
+        if (userId !== currentUserId) return;
         addSessionToList({ sessionId: sessionId, title: title, subjectName: subjectName || '' });
         });
 
-        connection.start().catch(err=>console.error(err.toString()));
+        connection.start().catch(err => console.error(err.toString()));
         })();
     </script>
 }

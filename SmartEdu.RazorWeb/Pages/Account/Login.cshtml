@@ -5,42 +5,453 @@
     ViewData["Title"] = "Đăng nhập";
 }
 
-<div class="container mt-5">
-    <div class="row justify-content-center">
+<style>
+    .se-login-wrap {
+        display: flex;
+        min-height: 520px;
+        border-radius: 16px;
+        box-shadow: 0 8px 40px rgba(0,0,0,0.10);
+        overflow: hidden;
+        max-width: 860px;
+        margin: 60px auto;
+    }
 
-        <div class="col-md-4">
+    .se-loginbrand {
+        flex: 1;
+        background: #0F1B2D;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        padding: 2.5rem 2rem;
+    }
 
-            <h3 class="text-center mb-4">
-                SmartEdu Login
-            </h3>
+    .se-loginbrand-logo {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
 
-            <form method="post">
+    .se-logo-mark {
+        width: 38px;
+        height: 38px;
+        background: #4A90E2;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
 
-                <div class="mb-3">
-                    <label>Tên đăng nhập</label>
-                    <input asp-for="Username"
-                           class="form-control" />
-                </div>
+        .se-logo-mark svg {
+            width: 20px;
+            height: 20px;
+            fill: #fff;
+        }
 
-                <div class="mb-3">
-                    <label>Mật khẩu</label>
-                    <input asp-for="Password"
-                           type="password"
-                           class="form-control" />
-                </div>
+    .se-loginbrand-name {
+        color: #F0F4FF;
+        font-size: 15px;
+        font-weight: 600;
+        letter-spacing: 0.5px;
+    }
 
-                <button type="submit"
-                        class="btn btn-primary w-100">
-                    Đăng nhập
-                </button>
+    .se-loginbrand-headline {
+        color: #F0F4FF;
+        font-size: 22px;
+        font-weight: 600;
+        line-height: 1.4;
+        margin-bottom: 0.75rem;
+    }
 
-                <div class="text-danger mt-3">
-                    @Model.ErrorMessage
-                </div>
+    .se-loginbrand-sub {
+        color: #8A9BB5;
+        font-size: 13px;
+        line-height: 1.7;
+    }
 
-            </form>
+    .se-loginbrand-dots {
+        display: flex;
+        gap: 6px;
+    }
 
+    .se-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: #1E3A5F;
+    }
+
+        .se-dot.active {
+            background: #4A90E2;
+        }
+
+    .se-form-wrap {
+        flex: 1.2;
+        background: #fff;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        padding: 2.5rem 2.25rem;
+    }
+
+    .se-form-title {
+        font-size: 20px;
+        font-weight: 600;
+        color: #0F1B2D;
+        margin-bottom: 4px;
+    }
+
+    .se-form-sub {
+        font-size: 13px;
+        color: #6B7B8D;
+        margin-bottom: 2rem;
+    }
+
+    .se-field {
+        margin-bottom: 1.25rem;
+    }
+
+    .se-label {
+        display: block;
+        font-size: 13px;
+        font-weight: 500;
+        color: #3D4F63;
+        margin-bottom: 6px;
+    }
+
+    .se-input-wrap {
+        position: relative;
+    }
+
+        .se-input-wrap .se-icon {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #AAB4C0;
+            pointer-events: none;
+            display: flex;
+        }
+
+            .se-input-wrap .se-icon svg {
+                width: 16px;
+                height: 16px;
+                stroke: currentColor;
+                fill: none;
+            }
+
+    .se-form-wrap .form-control {
+        width: 100%;
+        padding: 10px 40px 10px 14px;
+        border: 1px solid #D8E2EE;
+        border-radius: 10px;
+        font-size: 14px;
+        color: #1A2A3A;
+        background: #F7FAFD;
+        outline: none;
+        transition: border-color 0.15s, box-shadow 0.15s;
+        box-shadow: none;
+    }
+
+        .se-form-wrap .form-control:focus {
+            border-color: #4A90E2;
+            background: #fff;
+            box-shadow: 0 0 0 3px rgba(74,144,226,0.12);
+        }
+
+    .se-btn-login {
+        width: 100%;
+        padding: 11px;
+        background: #4A90E2;
+        color: #fff;
+        border: none;
+        border-radius: 10px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        margin-top: 0.25rem;
+        transition: background 0.15s;
+        letter-spacing: 0.2px;
+    }
+
+        .se-btn-login:hover {
+            background: #2f76cc;
+        }
+
+        .se-btn-login:active {
+            transform: scale(0.99);
+        }
+
+    .se-error {
+        font-size: 12px;
+        color: #C0392B;
+        margin-top: 0.75rem;
+        min-height: 18px;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }
+
+        .se-error svg {
+            width: 14px;
+            height: 14px;
+            stroke: currentColor;
+            fill: none;
+            flex-shrink: 0;
+        }
+
+    @@media (max-width: 600px) {
+        .se-loginbrand {
+            display: none;
+        }
+
+        .se-login-wrap {
+            border-radius: 12px;
+            margin: 24px 16px;
+        }
+
+        .se-form-wrap {
+            padding: 2rem 1.5rem;
+        }
+    }
+
+    /* ===== Animations ===== */
+    @@keyframes seLoginCardIn {
+        from {
+            opacity: 0;
+            transform: translateY(20px) scale(0.98);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+    }
+
+    @@keyframes seSlideLeft {
+        from {
+            opacity: 0;
+            transform: translateX(-16px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateX(0);
+        }
+    }
+
+    @@keyframes seSlideRight {
+        from {
+            opacity: 0;
+            transform: translateX(16px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateX(0);
+        }
+    }
+
+    @@keyframes seFadeUp {
+        from {
+            opacity: 0;
+            transform: translateY(14px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    @@keyframes seShake {
+        0%, 100% {
+            transform: translateX(0);
+        }
+
+        20% {
+            transform: translateX(-4px);
+        }
+
+        40% {
+            transform: translateX(4px);
+        }
+
+        60% {
+            transform: translateX(-3px);
+        }
+
+        80% {
+            transform: translateX(3px);
+        }
+    }
+
+    @@keyframes seDotPulse {
+        0%, 100% {
+            transform: scale(1);
+            opacity: 1;
+        }
+
+        50% {
+            transform: scale(1.4);
+            opacity: 0.7;
+        }
+    }
+
+    .se-login-wrap {
+        animation: seLoginCardIn 0.5s ease-out both;
+    }
+
+    .se-loginbrand {
+        animation: seSlideLeft 0.55s ease-out 0.1s both;
+    }
+
+    .se-loginbrand-logo {
+        animation: seFadeUp 0.5s ease-out 0.25s both;
+    }
+
+    .se-loginbrand-headline {
+        animation: seFadeUp 0.5s ease-out 0.35s both;
+    }
+
+    .se-loginbrand-sub {
+        animation: seFadeUp 0.5s ease-out 0.45s both;
+    }
+
+    .se-dot.active {
+        animation: seDotPulse 1.8s ease-in-out 1s infinite;
+    }
+
+    .se-form-wrap {
+        animation: seSlideRight 0.55s ease-out 0.15s both;
+    }
+
+    .se-form-title {
+        animation: seFadeUp 0.5s ease-out 0.3s both;
+    }
+
+    .se-form-sub {
+        animation: seFadeUp 0.5s ease-out 0.38s both;
+    }
+
+    .se-field:nth-of-type(1) {
+        animation: seFadeUp 0.5s ease-out 0.46s both;
+    }
+
+    .se-field:nth-of-type(2) {
+        animation: seFadeUp 0.5s ease-out 0.54s both;
+    }
+
+    .se-btn-login {
+        animation: seFadeUp 0.5s ease-out 0.62s both;
+        transition: background 0.15s, transform 0.15s, box-shadow 0.15s;
+    }
+
+        .se-btn-login:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(74,144,226,0.30);
+        }
+
+        .se-btn-login:active {
+            transform: scale(0.99) translateY(0);
+        }
+
+    .se-input-wrap input.form-control {
+        transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+    }
+
+    .se-error {
+        animation: seShake 0.45s ease-in-out 0.1s both;
+    }
+
+    /* Respect reduced motion preference */
+    @@media (prefers-reduced-motion: reduce) {
+        .se-login-wrap,
+        .se-loginbrand,
+        .se-loginbrand-logo,
+        .se-loginbrand-headline,
+        .se-loginbrand-sub,
+        .se-dot.active,
+        .se-form-wrap,
+        .se-form-title,
+        .se-form-sub,
+        .se-field,
+        .se-btn-login,
+        .se-error {
+            animation: none !important;
+            transition: none !important;
+            opacity: 1 !important;
+            transform: none !important;
+        }
+    }
+</style>
+
+<div class="se-login-wrap">
+
+    <!-- Brand panel -->
+    <div class="se-loginbrand">
+        <div class="se-loginbrand-logo">
+            <div class="se-logo-mark">
+                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M12 3L1 9l11 6 9-4.91V17h2V9L12 3zM5 13.18v4L12 21l7-3.82v-4L12 17l-7-3.82z" />
+                </svg>
+            </div>
+            <span class="se-loginbrand-name">SmartEdu</span>
         </div>
 
+        <div>
+            <p class="se-loginbrand-headline">Học thông minh hơn,<br>tiến xa hơn mỗi ngày.</p>
+            <p class="se-loginbrand-sub">Nền tảng học tập trực tuyến dành cho<br>học sinh và sinh viên Việt Nam.</p>
+        </div>
+
+        <div class="se-loginbrand-dots">
+            <div class="se-dot active"></div>
+            <div class="se-dot"></div>
+            <div class="se-dot"></div>
+        </div>
     </div>
+
+    <!-- Form panel -->
+    <div class="se-form-wrap">
+        <p class="se-form-title">Chào mừng trở lại</p>
+        <p class="se-form-sub">Đăng nhập để tiếp tục học tập</p>
+
+        <form method="post">
+
+            <div class="se-field">
+                <label asp-for="Username" class="se-label">Tên đăng nhập</label>
+                <div class="se-input-wrap">
+                    <input asp-for="Username" class="form-control" placeholder="Nhập tên đăng nhập" />
+                    <span class="se-icon">
+                        <svg viewBox="0 0 24 24" stroke-width="1.8"><circle cx="12" cy="8" r="4" /><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" /></svg>
+                    </span>
+                </div>
+            </div>
+
+            <div class="se-field">
+                <label asp-for="Password" class="se-label">Mật khẩu</label>
+                <div class="se-input-wrap">
+                    <input asp-for="Password" type="password" class="form-control" placeholder="Nhập mật khẩu" />
+                    <span class="se-icon">
+                        <svg viewBox="0 0 24 24" stroke-width="1.8"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z" /><circle cx="12" cy="12" r="3" /></svg>
+                    </span>
+                </div>
+            </div>
+
+            <button type="submit" class="se-btn-login">Đăng nhập</button>
+
+            @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+            {
+                <div class="se-error">
+                    <svg viewBox="0 0 24 24" stroke-width="1.8">
+                        <circle cx="12" cy="12" r="10" />
+                        <line x1="12" y1="8" x2="12" y2="12" />
+                        <line x1="12" y1="16" x2="12.01" y2="16" />
+                    </svg>
+                    @Model.ErrorMessage
+                </div>
+            }
+
+        </form>
+    </div>
+
 </div>

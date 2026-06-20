@@ -7,79 +7,610 @@
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/SmartEdu.RazorWeb.styles.css" asp-append-version="true" />
+    <style>
+            * {
+                box-sizing: border-box;
+            }
+
+            body {
+                background: #F8FAFC;
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            }
+
+            /* ── Navbar ── */
+            .se-navbar {
+                background: #fff;
+                border-bottom: 1px solid #E2E8F0;
+                padding: 0 0;
+                position: sticky;
+                top: 0;
+                z-index: 100;
+            }
+
+            .se-navbar-inner {
+                max-width: 1200px;
+                margin: 0 auto;
+                padding: 0 24px;
+                height: 54px;
+                display: flex;
+                align-items: center;
+                gap: 0;
+            }
+
+            .se-brand {
+                font-size: 15px;
+                font-weight: 700;
+                color: #0F1B2D;
+                text-decoration: none;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                margin-right: 28px;
+                flex-shrink: 0;
+            }
+
+                .se-brand svg {
+                    width: 22px;
+                    height: 22px;
+                    stroke: #4A90E2;
+                    fill: none;
+                }
+
+                .se-brand:hover {
+                    color: #0F1B2D;
+                }
+
+            .se-nav-links {
+                display: flex;
+                align-items: center;
+                gap: 2px;
+                flex-grow: 1;
+                list-style: none;
+                margin: 0;
+                padding: 0;
+            }
+
+            .se-nav-link {
+                font-size: 13px;
+                font-weight: 500;
+                color: #6B7B8D;
+                text-decoration: none;
+                padding: 6px 11px;
+                border-radius: 8px;
+                transition: background 0.1s, color 0.1s;
+                display: flex;
+                align-items: center;
+                gap: 6px;
+            }
+
+                .se-nav-link svg {
+                    width: 14px;
+                    height: 14px;
+                    stroke: currentColor;
+                    fill: none;
+                }
+
+                .se-nav-link:hover {
+                    background: #F4F8FC;
+                    color: #1A2A3A;
+                }
+
+            /* Nav action buttons */
+            .se-nav-actions {
+                display: flex;
+                align-items: center;
+                gap: 6px;
+                margin-right: 12px;
+            }
+
+            .se-nav-btn {
+                padding: 5px 12px;
+                font-size: 12px;
+                font-weight: 600;
+                border-radius: 8px;
+                cursor: pointer;
+                border: 1px solid #D1DCE8;
+                background: #fff;
+                color: #3D4F63;
+                display: inline-flex;
+                align-items: center;
+                gap: 5px;
+                transition: background 0.1s, border-color 0.1s, color 0.1s;
+                text-decoration: none;
+                white-space: nowrap;
+            }
+
+                .se-nav-btn svg {
+                    width: 13px;
+                    height: 13px;
+                    stroke: currentColor;
+                    fill: none;
+                }
+
+                .se-nav-btn:hover {
+                    background: #F4F8FC;
+                    color: #1A2A3A;
+                }
+
+            .se-nav-btn-primary {
+                border-color: #B5D4F4;
+                color: #185FA5;
+                background: #E6F1FB;
+            }
+
+                .se-nav-btn-primary:hover {
+                    background: #d0e8f8;
+                    color: #185FA5;
+                }
+
+            /* User dropdown */
+            .se-user-menu {
+                position: relative;
+            }
+
+            .se-user-trigger {
+                display: flex;
+                align-items: center;
+                gap: 7px;
+                padding: 5px 10px;
+                border-radius: 8px;
+                cursor: pointer;
+                border: 1px solid #E2E8F0;
+                background: #fff;
+                font-size: 12px;
+                font-weight: 600;
+                color: #1A2A3A;
+                transition: background 0.1s;
+            }
+
+                .se-user-trigger:hover {
+                    background: #F4F8FC;
+                }
+
+            .se-user-avatar {
+                width: 26px;
+                height: 26px;
+                border-radius: 50%;
+                background: #E6F1FB;
+                color: #185FA5;
+                font-size: 10px;
+                font-weight: 700;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                flex-shrink: 0;
+            }
+
+            .se-user-trigger svg {
+                width: 12px;
+                height: 12px;
+                stroke: #AAB4C0;
+                fill: none;
+            }
+
+            /* keep Bootstrap dropdown working */
+            .se-user-menu .dropdown-menu {
+                border: 1px solid #E2E8F0;
+                border-radius: 10px;
+                box-shadow: 0 4px 16px rgba(15,27,45,0.08);
+                padding: 4px;
+                min-width: 160px;
+                font-size: 13px;
+            }
+
+            .se-user-menu .dropdown-item {
+                border-radius: 7px;
+                padding: 7px 12px;
+                color: #1A2A3A;
+                font-size: 13px;
+            }
+
+                .se-user-menu .dropdown-item:hover {
+                    background: #F4F8FC;
+                }
+
+            .se-login-link {
+                font-size: 13px;
+                font-weight: 600;
+                color: #4A90E2;
+                text-decoration: none;
+                padding: 5px 12px;
+                border: 1px solid #B5D4F4;
+                border-radius: 8px;
+                background: #E6F1FB;
+                transition: background 0.1s;
+            }
+
+                .se-login-link:hover {
+                    background: #d0e8f8;
+                    color: #185FA5;
+                }
+
+            /* Mobile toggler */
+            .se-toggler {
+                display: none;
+                background: none;
+                border: 1px solid #E2E8F0;
+                border-radius: 8px;
+                padding: 5px 8px;
+                cursor: pointer;
+                margin-left: auto;
+            }
+
+                .se-toggler svg {
+                    width: 18px;
+                    height: 18px;
+                    stroke: #6B7B8D;
+                    fill: none;
+                }
+
+            @@media (max-width: 767px) {
+                .se-toggler {
+                    display: flex;
+                }
+
+                .se-navbar-collapsible {
+                    display: none;
+                    width: 100%;
+                }
+
+                    .se-navbar-collapsible.open {
+                        display: flex;
+                        flex-direction: column;
+                        padding: 10px 0 14px;
+                        gap: 6px;
+                        border-top: 1px solid #E2E8F0;
+                    }
+
+                .se-navbar-inner {
+                    flex-wrap: wrap;
+                    height: auto;
+                    padding: 10px 16px;
+                }
+
+                .se-nav-actions {
+                    flex-wrap: wrap;
+                    margin-right: 0;
+                }
+            }
+
+            /* ── Main container ── */
+            .se-main-wrap {
+                max-width: 1200px;
+                margin: 0 auto;
+                padding: 28px 24px 40px;
+            }
+
+            /* ── Footer ── */
+            .se-footer {
+                border-top: 1px solid #E2E8F0;
+                background: #fff;
+                padding: 14px 24px;
+            }
+
+            .se-footer-inner {
+                max-width: 1200px;
+                margin: 0 auto;
+                font-size: 12px;
+                color: #AAB4C0;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+            }
+
+                .se-footer-inner a {
+                    color: #AAB4C0;
+                    text-decoration: none;
+                }
+
+                    .se-footer-inner a:hover {
+                        color: #4A90E2;
+                    }
+            /* ===== Animations ===== */
+            @@keyframes seNavbarIn {
+                from {
+                    opacity: 0;
+                    transform: translateY(-8px);
+                }
+
+                to {
+                    opacity: 1;
+                    transform: translateY(0);
+                }
+            }
+
+            @@keyframes sePageIn {
+                from {
+                    opacity: 0;
+                    transform: translateY(10px);
+                }
+
+                to {
+                    opacity: 1;
+                    transform: translateY(0);
+                }
+            }
+
+            @@keyframes seCollapseIn {
+                from {
+                    opacity: 0;
+                    transform: translateY(-6px);
+                }
+
+                to {
+                    opacity: 1;
+                    transform: translateY(0);
+                }
+            }
+
+            @@keyframes seDropdownIn {
+                from {
+                    opacity: 0;
+                    transform: translateY(-6px) scale(0.97);
+                }
+
+                to {
+                    opacity: 1;
+                    transform: translateY(0) scale(1);
+                }
+            }
+
+            .se-navbar {
+                animation: seNavbarIn 0.35s ease-out both;
+            }
+
+            .se-main-wrap {
+                animation: sePageIn 0.4s ease-out 0.05s both;
+            }
+
+            /* Brand logo subtle hover */
+            .se-brand svg {
+                transition: transform 0.25s ease-out;
+            }
+
+            .se-brand:hover svg {
+                transform: rotate(-8deg) scale(1.08);
+            }
+
+            /* Nav link underline sweep */
+            .se-nav-link {
+                position: relative;
+            }
+
+                .se-nav-link::after {
+                    content: '';
+                    position: absolute;
+                    left: 11px;
+                    right: 11px;
+                    bottom: 2px;
+                    height: 2px;
+                    border-radius: 2px;
+                    background: #4A90E2;
+                    transform: scaleX(0);
+                    transform-origin: left;
+                    transition: transform 0.18s ease-out;
+                }
+
+                .se-nav-link:hover::after {
+                    transform: scaleX(1);
+                }
+
+                .se-nav-link svg {
+                    transition: transform 0.15s ease-out;
+                }
+
+                .se-nav-link:hover svg {
+                    transform: translateY(-1px);
+                }
+
+            /* Action buttons lift on hover */
+            .se-nav-btn,
+            .se-login-link {
+                transition: background 0.1s, border-color 0.1s, color 0.1s, transform 0.15s, box-shadow 0.15s;
+            }
+
+                .se-nav-btn:hover {
+                    transform: translateY(-1px);
+                    box-shadow: 0 4px 10px rgba(15,27,45,0.06);
+                }
+
+                .se-nav-btn:active,
+                .se-login-link:active {
+                    transform: scale(0.96);
+                }
+
+                .se-login-link:hover {
+                    transform: translateY(-1px);
+                    box-shadow: 0 4px 10px rgba(74,144,226,0.15);
+                }
+
+            /* User trigger + dropdown */
+            .se-user-trigger {
+                transition: background 0.1s, transform 0.12s;
+            }
+
+                .se-user-trigger:active {
+                    transform: scale(0.97);
+                }
+
+                .se-user-trigger svg {
+                    transition: transform 0.15s ease-out;
+                }
+
+                .se-user-trigger[aria-expanded="true"] svg {
+                    transform: rotate(180deg);
+                }
+
+            .se-user-menu .dropdown-menu.show {
+                animation: seDropdownIn 0.16s ease-out both;
+            }
+
+            .se-user-menu .dropdown-item {
+                transition: background 0.1s, transform 0.1s;
+            }
+
+                .se-user-menu .dropdown-item:hover {
+                    transform: translateX(2px);
+                }
+
+            /* Mobile collapsible menu */
+            .se-navbar-collapsible.open {
+                animation: seCollapseIn 0.2s ease-out both;
+            }
+
+            .se-toggler {
+                transition: background 0.1s, transform 0.15s;
+            }
+
+                .se-toggler:active {
+                    transform: scale(0.92);
+                }
+
+            /* Footer subtle fade */
+            .se-footer {
+                animation: sePageIn 0.4s ease-out 0.1s both;
+            }
+
+            /* Respect reduced motion preference */
+            @@media (prefers-reduced-motion: reduce) {
+                .se-navbar,
+                .se-main-wrap,
+                .se-footer,
+                .se-brand svg,
+                .se-nav-link::after,
+                .se-nav-btn,
+                .se-login-link,
+                .se-user-trigger,
+                .se-user-menu .dropdown-menu.show,
+                .se-navbar-collapsible.open {
+                    animation: none !important;
+                    transition: none !important;
+                    opacity: 1 !important;
+                    transform: none !important;
+                }
+            }
+    </style>
 </head>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.7/signalr.min.js"></script>
 <body>
+
+    @{
+        var role = Context.Session.GetString("Role") ?? string.Empty; var username = Context.Session.GetString("Username");
+    }
+
     <header>
-        <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
-            <div class="container">
-                <a class="navbar-brand" asp-area="" asp-page="/Index">SmartEdu.RazorWeb</a>
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
-                        aria-expanded="false" aria-label="Toggle navigation">
-                    <span class="navbar-toggler-icon"></span>
+        <nav class="se-navbar">
+            <div class="se-navbar-inner">
+                <!-- Brand -->
+                <a class="se-brand" asp-area="" asp-page="/Index">
+                    <svg viewBox="0 0 24 24" stroke-width="1.8">
+                        <path d="M22 10v6M2 10l10-5 10 5-10 5z" />
+                        <path d="M6 12v5c3 3 9 3 12 0v-5" />
+                    </svg>
+                    SmartEdu
+                </a>
+
+                <!-- Mobile toggler -->
+                <button class="se-toggler" onclick="this.closest('nav').querySelector('.se-navbar-collapsible').classList.toggle('open')">
+                    <svg viewBox="0 0 24 24" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="18" x2="21" y2="18" /></svg>
                 </button>
-                <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
-                    <ul class="navbar-nav flex-grow-1">
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-page="/Index">Home</a>
+
+                <!-- Collapsible area -->
+                <div class="se-navbar-collapsible d-sm-flex align-items-center flex-grow-1">
+                    <!-- Left links -->
+                    <ul class="se-nav-links">
+                        <li>
+                            <a class="se-nav-link" asp-area="" asp-page="/Index">
+                                <svg viewBox="0 0 24 24" stroke-width="1.8"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /><polyline points="9 22 9 12 15 12 15 22" /></svg>
+                                Home
+                            </a>
                         </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-page="/Privacy">Privacy</a>
+                        <li>
+                            <a class="se-nav-link" asp-area="" asp-page="/Privacy">
+                                <svg viewBox="0 0 24 24" stroke-width="1.8"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></svg>
+                                Privacy
+                            </a>
                         </li>
                     </ul>
-                    @{ var role = Context.Session.GetString("Role") ?? string.Empty; var username = Context.Session.GetString("Username"); }
-                    <div class="d-flex align-items-center gap-2 me-3">
+
+                    <!-- Right action buttons -->
+                    <div class="se-nav-actions">
                         @if (!string.IsNullOrEmpty(role) && role.Equals("Student", System.StringComparison.OrdinalIgnoreCase))
                         {
-                            <a class="btn btn-sm btn-outline-primary" asp-page="/Chat/Index">🤖 Chat</a>
-                        }                           
+                            <a class="se-nav-btn se-nav-btn-primary" asp-page="/Chat/Index">
+                                <svg viewBox="0 0 24 24" stroke-width="1.8"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
+                                Chat
+                            </a>
+                        }
+
                         @if (!string.IsNullOrEmpty(role) && (role.Equals("Admin", System.StringComparison.OrdinalIgnoreCase) || role.Equals("Lecturer", System.StringComparison.OrdinalIgnoreCase)))
                         {
-                            <a class="btn btn-sm btn-outline-secondary" asp-page="/Documents/UploadDocument">⬆️ Upload</a>
+                            <a class="se-nav-btn" asp-page="/Documents/UploadDocument">
+                                <svg viewBox="0 0 24 24" stroke-width="1.8"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" /></svg>
+                                Upload
+                            </a>
                         }
 
                         @if (!string.IsNullOrEmpty(role) && role.Equals("Student", System.StringComparison.OrdinalIgnoreCase))
                         {
-                            <a class="btn btn-sm btn-outline-secondary" asp-page="/Documents/MyDocuments">📁 My Documents</a>
+                            <a class="se-nav-btn" asp-page="/Documents/MyDocuments">
+                                <svg viewBox="0 0 24 24" stroke-width="1.8"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" /></svg>
+                                My Documents
+                            </a>
                         }
 
                         @if (!string.IsNullOrEmpty(role) && role.Equals("Admin", System.StringComparison.OrdinalIgnoreCase))
                         {
-                            <a class="btn btn-sm btn-outline-primary" asp-page="/Subjects/Index">⚙️ Subjects</a>
-                            <a class="btn btn-sm btn-outline-primary" asp-page="/Lecturers/Index">👩‍🏫 Lecturers</a>
+                            <a class="se-nav-btn" asp-page="/Subjects/Index">
+                                <svg viewBox="0 0 24 24" stroke-width="1.8"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" /><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" /></svg>
+                                Subjects
+                            </a>
+                            <a class="se-nav-btn" asp-page="/Lecturers/Index">
+                                <svg viewBox="0 0 24 24" stroke-width="1.8"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>
+                                Lecturers
+                            </a>
                         }
                     </div>
 
-                    <ul class="navbar-nav">
-                        @if (!string.IsNullOrEmpty(username))
-                        {
-                            <li class="nav-item dropdown">
-                                <a class="nav-link dropdown-toggle text-dark" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                    @username
-                                </a>
-                                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
-                                    <li><a class="dropdown-item" asp-page="/Account/Logout">Đăng xuất</a></li>
-                                </ul>
-                            </li>
-                        }
-                        else
-                        {
-                            <li class="nav-item"><a class="nav-link text-dark" asp-page="/Account/Login">Đăng nhập</a></li>
-                        }
-                    </ul>
+                    <!-- User menu -->
+                    @if (!string.IsNullOrEmpty(username))
+                    {
+                        var initials = string.Concat((username ?? "?").Take(2)).ToUpper();
+                        <div class="se-user-menu dropdown">
+                            <button class="se-user-trigger" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                                <div class="se-user-avatar">@initials</div>
+                                @username
+                                <svg viewBox="0 0 24 24" stroke-width="2"><polyline points="6 9 12 15 18 9" /></svg>
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+                                <li>
+                                    <a class="dropdown-item" asp-page="/Account/Logout">
+                                        <svg viewBox="0 0 24 24" stroke-width="1.8" style="width:13px;height:13px;stroke:currentColor;fill:none;margin-right:6px;vertical-align:-1px"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" /></svg>
+                                        Đăng xuất
+                                    </a>
+                                </li>
+                            </ul>
+                        </div>
+                    }
+                    else
+                    {
+                        <a class="se-login-link" asp-page="/Account/Login">Đăng nhập</a>
+                    }
                 </div>
             </div>
         </nav>
     </header>
-    <div class="container">
+
+    <div class="se-main-wrap">
         <main role="main" class="pb-3">
             @RenderBody()
         </main>
     </div>
 
-    <footer class="border-top footer text-muted">
-        <div class="container">
-            &copy; 2026 - SmartEdu.RazorWeb - <a asp-area="" asp-page="/Privacy">Privacy</a>
+    <footer class="se-footer">
+        <div class="se-footer-inner">
+            <span>&copy; 2026 SmartEdu.RazorWeb</span>
+            <a asp-area="" asp-page="/Privacy">Privacy</a>
         </div>
     </footer>
 
