@@ -29,8 +29,10 @@
                     </ul>
                     @{ var role = Context.Session.GetString("Role") ?? string.Empty; var username = Context.Session.GetString("Username"); }
                     <div class="d-flex align-items-center gap-2 me-3">
-                        <a class="btn btn-sm btn-outline-primary" asp-page="/Chat/Index">🤖 Chat</a>
-
+                        @if (!string.IsNullOrEmpty(role) && role.Equals("Student", System.StringComparison.OrdinalIgnoreCase))
+                        {
+                            <a class="btn btn-sm btn-outline-primary" asp-page="/Chat/Index">🤖 Chat</a>
+                        }                           
                         @if (!string.IsNullOrEmpty(role) && (role.Equals("Admin", System.StringComparison.OrdinalIgnoreCase) || role.Equals("Lecturer", System.StringComparison.OrdinalIgnoreCase)))
                         {
                             <a class="btn btn-sm btn-outline-secondary" asp-page="/Documents/UploadDocument">⬆️ Upload</a>
