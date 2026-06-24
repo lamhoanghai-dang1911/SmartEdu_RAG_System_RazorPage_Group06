@@ -16,7 +16,7 @@ namespace SmartEdu.RazorWeb
         {
             var builder = WebApplication.CreateBuilder(args);
 
-            // 1. Cấu hình DbContext từ tầng DataAccess
+            // 1. Cấu hình DbContext  tầng DataAccess
             var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
             builder.Services.AddDbContext<AppDbContext>(options =>
                 options.UseSqlServer(connectionString));
