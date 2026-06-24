@@ -19,7 +19,6 @@ namespace SmartEdu.Business.Services
         private readonly IChatNotificationService _notification;
         private readonly IHttpClientFactory _httpFactory;
         private readonly IConfiguration _configuration;
-        //private readonly IServiceScopeFactory _serviceScopeFactory;
 
         public ChatService(
             IRepository<ChatSession> sessionRepo,
@@ -54,7 +53,7 @@ namespace SmartEdu.Business.Services
                 {
                     SessionId = request.SessionId,
                     SubjectId = request.SubjectId,
-                    Title = FallbackTitle(request.Question), // title tạm, hiển thị ngay
+                    Title = FallbackTitle(request.Question), 
                     UserId = request.UserId
                 };
                 await _sessionRepo.AddAsync(session);
@@ -62,7 +61,7 @@ namespace SmartEdu.Business.Services
                 string? subjectName = null;
                 if (session.SubjectId.HasValue)
                 {
-                    // Lấy tên subject nếu cần hiển thị badge - có thể bỏ qua nếu muốn đơn giản
+
                 }
                 await _notification.SendSessionCreatedAsync(request.UserId, session.SessionId, session.Title, subjectName);
             }
@@ -74,7 +73,6 @@ namespace SmartEdu.Business.Services
             var ragTask = RunRagPipelineAsync(request, session);
             var ragResponse = await ragTask;
 
-            // Sinh title "xịn" ở background, chỉ cho session mới, không block response
             if (isNewSession)
             {
                 var sessionId = session.Id;
@@ -97,7 +95,7 @@ namespace SmartEdu.Business.Services
                     }
                     catch
                     {
-                        // bỏ qua lỗi, giữ nguyên fallback title
+
                     }
                 });
             }
@@ -229,7 +227,6 @@ namespace SmartEdu.Business.Services
 
             string modelUrl = "https://router.huggingface.co/hf-inference/models/intfloat/multilingual-e5-base/pipeline/feature-extraction";
 
-            // Model E5 yêu cầu prefix 'query: ' cho câu hỏi
             var payload = new { inputs = $"query: {question}" };
             using var content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");
 
@@ -250,7 +247,6 @@ namespace SmartEdu.Business.Services
             if (string.IsNullOrWhiteSpace(apiKey) || apiKey == "myKey")
                 throw new Exception("Thiếu Gemini API Key hợp lệ trong User Secrets.");
 
-            // Đảm bảo endpoint gọi bản 2.5-flash ổn định
             string url = $"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={apiKey.Trim()}";
 
             string fullPrompt = @"Bạn là trợ lý học tập thông minh (SmartEdu AI).
@@ -262,7 +258,7 @@ NGỮ CẢNH:
 CÂU HỎI:
 " + question;
 
-            // Cấu trúc Payload chuẩn hóa 100% cho Gemini 2.x - Đưa maxOutputTokens vào đúng vị trí
+
             var payload = new
             {
                 contents = new[]
