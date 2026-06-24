@@ -29,7 +29,6 @@ namespace SmartEdu.RazorWeb
             builder.Services.AddBusinessServices();
 
             // 3. Add services to the container
-            // Register Razor Pages and add the session authorize filter globally  MVC options
             builder.Services.AddRazorPages()
                 .AddMvcOptions(options => options.Filters.Add<SmartEdu.RazorWeb.Filters.SessionAuthorizeFilter>());
             // Cookie authentication for claims-based checks
