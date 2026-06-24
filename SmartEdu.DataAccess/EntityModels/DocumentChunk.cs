@@ -11,9 +11,9 @@ namespace SmartEdu.DataAccess.EntityModels
         public int DocumentId { get; set; }
         public Document Document { get; set; } = null!;
 
-        public int ChunkIndex { get; set; }          // thứ tự chunk
-        public string Content { get; set; } = string.Empty;  // nội dung text
-        public string? EmbeddingJson { get; set; }   // vector lưu dạng JSON (float[])
-        public string? EmbeddingModel { get; set; }  // "openai" | "phobert" | "e5"
+        public int ChunkIndex { get; set; }       
+        public string Content { get; set; } = string.Empty;  
+        public string? EmbeddingJson { get; set; }  
+        public string? EmbeddingModel { get; set; } 
     }
 }

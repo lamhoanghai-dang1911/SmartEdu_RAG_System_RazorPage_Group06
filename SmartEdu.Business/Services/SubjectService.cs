@@ -68,7 +68,7 @@ namespace SmartEdu.Business.Services
             await _uow.BeginTransactionAsync();
             try
             {
-                // find existing relation if any
+
                 var existing = await _uow.LecturerSubjects.GetAllAsync();
                 var item = existing.FirstOrDefault(ls => ls.LecturerId == dto.LecturerId && ls.SubjectId == dto.SubjectId);
 
@@ -87,7 +87,7 @@ namespace SmartEdu.Business.Services
                     _uow.LecturerSubjects.Update(item);
                 }
 
-                // If marking as leader, demote other leaders of this subject
+
                 if (dto.IsLeader)
                 {
                     var leaders = existing.Where(ls => ls.SubjectId == dto.SubjectId && ls.IsLeader && ls.LecturerId != dto.LecturerId).ToList();
@@ -147,7 +147,7 @@ namespace SmartEdu.Business.Services
 
         public async Task SetLeaderAsync(int subjectId, int lecturerId)
         {
-            // Kiểm tra xem đã có giảng viên nào là Leader chưa (dùng AnyAsync cho nhanh)
+
             bool hasLeader = await _uow.LecturerSubjects.AnyAsync(ls =>
                 ls.SubjectId == subjectId && ls.IsLeader == true);
 
@@ -156,7 +156,6 @@ namespace SmartEdu.Business.Services
                 throw new InvalidOperationException("Môn học này đã có giảng viên làm Leader. Vui lòng gỡ Leader hiện tại trước khi thiết lập người mới.");
             }
 
-            // Tìm mối quan hệ để gán Leader
             var relation = await _uow.LecturerSubjects.GetAsync(ls => ls.SubjectId == subjectId && ls.LecturerId == lecturerId);
 
             if (relation == null)
@@ -213,7 +212,7 @@ namespace SmartEdu.Business.Services
                 _logger?.LogInformation("Adding subject to DbContext: {Name}", subject.Name);
                 await _repo.SaveChangesAsync();
                 _logger?.LogInformation("Subject saved with Id {Id}", subject.Id);
-                // SubjectCreated notification removed; SubjectListChanged is used by UI handlers instead
+
             }
             catch (Exception ex)
             {
@@ -238,7 +237,7 @@ namespace SmartEdu.Business.Services
                 _logger?.LogInformation("Updating subject Id {Id}", existingSubject.Id);
                 await _repo.SaveChangesAsync();
                 _logger?.LogInformation("Subject updated Id {Id}", existingSubject.Id);
-                // SubjectUpdated notification removed; SubjectListChanged is used by UI handlers instead
+
             }
             catch (Exception ex)
             {
@@ -261,7 +260,7 @@ namespace SmartEdu.Business.Services
                 _logger?.LogInformation("Marking subject Id {Id} as deleted", id);
                 await _repo.SaveChangesAsync();
                 _logger?.LogInformation("Subject deleted Id {Id}", id);
-                // SubjectDeleted notification removed; SubjectListChanged is used by UI handlers instead
+
             }
             catch (Exception ex)
             {
@@ -433,7 +432,6 @@ namespace SmartEdu.Business.Services
     subjectId,
     allStudentIds.Count);
 
-                // Send welcome emails for newly created accounts
                 foreach (var account in generatedAccountsLog)
                 {
                     try
@@ -447,7 +445,6 @@ namespace SmartEdu.Business.Services
                     }
                 }
 
-                // Send enrollment notification to all students who were newly enrolled into this subject
                 if (newlyEnrolledIds.Any())
                 {
                     var usersToNotify = await _uow.Users.GetAllAsync(u => newlyEnrolledIds.Contains(u.Id));
