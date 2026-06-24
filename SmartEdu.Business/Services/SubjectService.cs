@@ -468,6 +468,7 @@ namespace SmartEdu.Business.Services
             }
         }
 
+
         public async Task RemoveLeaderAsync(int subjectId, int lecturerId)
         {
             var relation = await _uow.LecturerSubjects.GetAsync(ls => ls.SubjectId == subjectId && ls.LecturerId == lecturerId);
@@ -484,3 +485,36 @@ namespace SmartEdu.Business.Services
         }
     }
 }
+
+//update
+//update
+//update
+//update
+//update
+//update
+//update
+//update
+//update//update//update//update//update//update//update//update//update//update//update//update//update//update//update//update//update//update//update//update//update//update
+//update
+//update
+
+//update
+//update
+//update//update
+//update
+//update
+//update
+//update
+//update
+//update
+//update
+//update
+//update
+//update
+//updatev
+
+//update
+//update
+//update
+//update
+//update
