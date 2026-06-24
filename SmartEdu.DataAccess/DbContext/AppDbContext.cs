@@ -38,7 +38,6 @@ namespace SmartEdu.RazorWeb.Data
                 entity.HasOne(ss => ss.Subject).WithMany().HasForeignKey(ss => ss.SubjectId).OnDelete(DeleteBehavior.Restrict);
             });
 
-            // 4. Cấu hình LecturerSubject (Many-to-Many)
             modelBuilder.Entity<LecturerSubject>(entity =>
             {
                 entity.ToTable("LecturerSubject");
