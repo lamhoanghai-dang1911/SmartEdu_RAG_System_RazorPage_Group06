@@ -313,6 +313,35 @@
         }
     }
 
+@section Modals {
+    @if (Model.IsLeader)
+    {
+        <div id="document-progress" class="se-modal-overlay">
+            <div class="se-modal-box">
+                <div class="se-modal-head">
+                    <h3>
+                        <svg viewBox="0 0 24 24" stroke-width="1.8"><rect x="4" y="4" width="16" height="16" rx="2" /><path d="M9 9l6 3-6 3V9z" /></svg>
+                        Đang xử lý embedding...
+                    </h3>
+                    <button type="button" class="se-modal-close" id="progress-modal-close" aria-label="Đóng">
+                        <svg viewBox="0 0 24 24" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+                    </button>
+                </div>
+                <div class="se-modal-body">
+                    <div class="se-progress-label">
+                        <span>Tiến trình</span>
+                        <span id="progress-pct">0%</span>
+                    </div>
+                    <div class="se-progress-track">
+                        <div id="global-progress-bar" role="progressbar" style="width:0%"></div>
+                    </div>
+                    <div id="log"></div>
+                </div>
+            </div>
+        </div>
+    }
+}
+
     .se-btn-row {
         display: flex;
         gap: 6px;
@@ -758,7 +787,7 @@ else
         </div>
     }
 
-    @if (Model.IsLeader || Model.Documents.Any())
+    @if (Model.SubjectId.HasValue)
     {
         <div class="se-card">
             <div class="se-card-head">
@@ -851,29 +880,7 @@ else
 
             @if (Model.IsLeader)
             {
-                <div id="document-progress" class="se-modal-overlay">
-                    <div class="se-modal-box">
-                        <div class="se-modal-head">
-                            <h3>
-                                <svg viewBox="0 0 24 24" stroke-width="1.8"><rect x="4" y="4" width="16" height="16" rx="2" /><path d="M9 9l6 3-6 3V9z" /></svg>
-                                Đang xử lý embedding...
-                            </h3>
-                            <button type="button" class="se-modal-close" id="progress-modal-close" aria-label="Đóng">
-                                <svg viewBox="0 0 24 24" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
-                            </button>
-                        </div>
-                        <div class="se-modal-body">
-                            <div class="se-progress-label">
-                                <span>Tiến trình</span>
-                                <span id="progress-pct">0%</span>
-                            </div>
-                            <div class="se-progress-track">
-                                <div id="global-progress-bar" role="progressbar" style="width:0%"></div>
-                            </div>
-                            <div id="log"></div>
-                        </div>
-                    </div>
-                </div>
+                @* Progress modal moved to the Modals section to ensure it renders as a direct child of <body> and covers the viewport correctly *@
             }
         </div>
 
@@ -937,6 +944,8 @@ else
                         credentials: 'same-origin'
                     });
 
+
+
                     if (!resp.ok) {
                         alert('Failed to start embedding');
                         if (btn) btn.disabled = false;
@@ -959,6 +968,16 @@ else
                 }
             };
 
+                        /* // Remove row when a document is deleted */
+            conn.on('DocumentDeleted', function (documentId) {
+                try {
+                    const row = document.getElementById('doc-row-' + documentId);
+                    if (row) row.remove();
+                } catch (e) {
+                    console.error('Failed to handle DocumentDeleted', e);
+                }
+            });
+
             conn.on('DocumentProgress', function (documentId, currentChunk, totalChunks) {
                 const pct = Math.round((currentChunk / totalChunks) * 100);
                 const global = safeGet('global-progress-bar');
@@ -978,6 +997,127 @@ else
                     if (btn) btn.disabled = true;
                 }
             });
+
+            conn.on('DocumentAdded', async function (documentId) {
+                console.log('DocumentAdded received', documentId, 'subjectId=', subjectId);
+                try {
+                    const res = await fetch('?handler=Documents&SubjectId=' + encodeURIComponent(subjectId), { credentials: 'same-origin' });
+                    const docs = await res.json();
+                    const tbody = document.querySelector('.se-table-wrap tbody');
+                    if (!tbody) return;
+                    tbody.innerHTML = '';
+                    docs.forEach(d => {
+                        const statusClass = statusClassFor(d.status);
+                        const embedDisabled = (!isLeader) || d.status === 'Ready';
+                        const tr = document.createElement('tr');
+                        tr.id = 'doc-row-' + d.id;
+                        tr.innerHTML = `
+                            <td>
+                                <div class="se-doc-cell">
+                                    <div class="se-doc-icon">
+                                        <svg viewBox="0 0 24 24" stroke-width="1.8"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /></svg>
+                                    </div>
+                                    <div>
+                                        <div class="se-doc-name doc-title">${escapeHtml(d.title)}</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="se-badge ${statusClass} doc-status" id="doc-status-${d.id}">${d.status}</span>
+                                <span class="se-processing-text" id="processing-text-${d.id}" style="display:none">Đang xử lý...</span>
+                            </td>
+                            <td><span class="se-muted-sm">${escapeHtml(d.fileName)}</span></td>
+                            <td>
+                                <div class="se-btn-row">
+                                    <button type="button" class="se-btn-sm trigger-btn" data-docid="${d.id}" ${embedDisabled ? 'disabled' : ''}>
+                                        <svg viewBox="0 0 24 24" stroke-width="1.8"><rect x="4" y="4" width="16" height="16" rx="2" /><path d="M9 9l6 3-6 3V9z" /></svg>
+                                        Kích hoạt Embedding
+                                    </button>
+
+                                    <a class="se-btn-sm" href="?handler=Download&id=${d.id}">
+                                        <svg viewBox="0 0 24 24" stroke-width="1.8"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>
+                                        Download
+                                    </a>
+
+                                    ${isLeader ? `
+                                        <button type="button" class="se-btn-sm se-btn-danger" onclick="deleteDocument(${d.id})">
+                                            <svg viewBox="0 0 24 24" stroke-width="1.8"><polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14H6L5 6" /><path d="M10 11v6M14 11v6" /><path d="M9 6V4h6v2" /></svg>
+                                            Xóa
+                                        </button>` : `
+                                        <button type="button" class="se-btn-sm se-btn-danger" disabled>
+                                            <svg viewBox="0 0 24 24" stroke-width="1.8"><polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14H6L5 6" /><path d="M10 11v6M14 11v6" /><path d="M9 6V4h6v2" /></svg>
+                                            Xóa
+                                        </button>`}
+                                </div>
+                            </td>
+                        `;
+                        tbody.appendChild(tr);
+                    });
+
+                    // Re-bind trigger buttons for leader so new rows are interactive
+                    if (isLeader) {
+                        document.querySelectorAll('.trigger-btn').forEach(btn => {
+                            btn.removeEventListener('click', triggerBtnHandler);
+                            btn.addEventListener('click', triggerBtnHandler);
+                        });
+                    }
+                }
+                catch (e) {
+                    console.error('Failed to refresh documents after DocumentAdded', e);
+                }
+            });
+
+            function triggerBtnHandler() {
+                if (this.disabled) return;
+                const id = this.getAttribute('data-docid');
+                if (!id) return;
+                window.triggerEmbedding(Number(id), this);
+                this.disabled = true;
+            }
+
+            // simple HTML escape to avoid injecting raw values
+            function escapeHtml(s) {
+                if (!s) return '';
+                return String(s).replace(/[&<>"'`=\/]/g, function (c) {
+                    return {
+                        '&': '&amp;',
+                        '<': '&lt;',
+                        '>': '&gt;',
+                        '"': '&quot;',
+                        "'": '&#39;',
+                        '/': '&#x2F;'
+                    }[c];
+                });
+            }
+
+            // Delete document via AJAX using antiforgery token; server will broadcast deletion
+            window.deleteDocument = async function (id) {
+                if (!confirm('Bạn có chắc muốn xóa tài liệu này?')) return;
+                try {
+                    const tokenEl = document.querySelector('input[name="__RequestVerificationToken"]');
+                    const token = tokenEl ? tokenEl.value : '';
+                    const form = new FormData();
+                    form.append('__RequestVerificationToken', token);
+                    form.append('id', id);
+
+                    const resp = await fetch('?handler=Delete', {
+                        method: 'POST',
+                        body: form,
+                        credentials: 'same-origin'
+                    });
+
+                    if (resp.ok) {
+                        // remove local row immediately; other clients will receive DocumentDeleted via SignalR
+                        const row = document.getElementById('doc-row-' + id);
+                        if (row) row.remove();
+                    } else {
+                        alert('Delete failed');
+                    }
+                } catch (e) {
+                    console.error('Delete failed', e);
+                    alert('Delete failed');
+                }
+            };
 
             conn.on('ChunkLogCreated', function (documentId, chunkIndex, totalChunks, content) {
                 const log = safeGet('log');

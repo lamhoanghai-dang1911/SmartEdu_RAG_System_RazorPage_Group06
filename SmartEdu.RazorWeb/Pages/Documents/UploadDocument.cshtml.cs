@@ -11,11 +11,13 @@ namespace SmartEdu.RazorWeb.Pages.Documents
     {
         private readonly IDocumentService _documentService;
         private readonly ISubjectService _subjectService;
+        private readonly SmartEdu.Business.Interfaces.IDocumentNotificationService _notification;
 
-        public UploadDocumentModel(IDocumentService documentService, ISubjectService subjectService)
+        public UploadDocumentModel(IDocumentService documentService, ISubjectService subjectService, SmartEdu.Business.Interfaces.IDocumentNotificationService notification)
         {
             _documentService = documentService;
             _subjectService = subjectService;
+            _notification = notification;
         }
 
         [BindProperty(SupportsGet = true)]
@@ -98,8 +100,33 @@ namespace SmartEdu.RazorWeb.Pages.Documents
             }
 
             var webRoot = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
-            await _documentService.UploadAsync(File!, Title, SubjectId!.Value, webRoot);
+            var created = await _documentService.UploadAsync(File!, Title, SubjectId!.Value, webRoot);
+
+            // Notify connected clients in the subject group so they can refresh document lists
+            try
+            {
+                await _notification.DocumentAdded(created.Id, SubjectId!.Value);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"DocumentAdded notification failed: {ex}");
+            }
+
             return RedirectToPage(new { SubjectId });
+        }
+
+        public async Task<IActionResult> OnGetDocumentsAsync()
+        {
+            if (!SubjectId.HasValue) return new JsonResult(new object[0]);
+            var docs = await _documentService.GetAllAsync(SubjectId);
+            var result = docs.Select(d => new
+            {
+                id = d.Id,
+                title = d.Title,
+                fileName = d.FileName,
+                status = d.Status.ToString()
+            });
+            return new JsonResult(result);
         }
 
         public async Task<IActionResult> OnPostTriggerEmbeddingAsync(int documentId)
@@ -150,6 +177,17 @@ namespace SmartEdu.RazorWeb.Pages.Documents
             if (!can) return Forbid();
 
             await _documentService.DeleteAsync(id);
+
+            // Notify connected clients in the subject group so they can remove the document row
+            try
+            {
+                await _notification.DocumentDeleted(id, doc.SubjectId);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"DocumentDeleted notification failed: {ex}");
+            }
+
             return RedirectToPage(new { SubjectId = doc.SubjectId });
         }
 

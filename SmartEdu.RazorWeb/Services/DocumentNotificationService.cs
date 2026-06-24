@@ -47,5 +47,15 @@ namespace SmartEdu.RazorWeb.Services
                 totalChunks,
                 content);
         }
+
+        public async Task DocumentAdded(int documentId, int subjectId)
+        {
+            await _hub.Clients.Group(subjectId.ToString()).SendAsync("DocumentAdded", documentId);
+        }
+
+        public async Task DocumentDeleted(int documentId, int subjectId)
+        {
+            await _hub.Clients.Group(subjectId.ToString()).SendAsync("DocumentDeleted", documentId);
+        }
     }
 }

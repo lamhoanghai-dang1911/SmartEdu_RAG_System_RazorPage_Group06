@@ -24,5 +24,11 @@ namespace SmartEdu.Business.Interfaces
 
         // Broadcast a log message to all connected clients (diagnostic)
         Task ChunkLogCreated(int documentId, int chunkIndex, int totalChunks, string content, int subjectId);
+
+        // Notify that a new document has been added to a subject so clients can refresh their lists
+        Task DocumentAdded(int documentId, int subjectId);
+
+        // Notify that a document was deleted so clients can update UI
+        Task DocumentDeleted(int documentId, int subjectId);
     }
 }

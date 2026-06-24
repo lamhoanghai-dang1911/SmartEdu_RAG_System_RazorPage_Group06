@@ -322,12 +322,10 @@
             @@keyframes sePageIn {
                 from {
                     opacity: 0;
-                    transform: translateY(10px);
                 }
 
                 to {
                     opacity: 1;
-                    transform: translateY(0);
                 }
             }
 
@@ -471,6 +469,25 @@
                 animation: sePageIn 0.4s ease-out 0.1s both;
             }
 
+            /* Modal stacking - keep above other UI but allow normal pointer behavior */
+            .modal-backdrop {
+                z-index: 1040 !important;
+            }
+
+            /* follow Bootstrap pattern: modal itself doesn't accept pointer events until visible (.show) */
+            .modal {
+                z-index: 1045 !important;
+                pointer-events: none !important;
+            }
+
+            /* When modal is shown, enable pointer events so dialog and controls are interactive */
+            .modal.show {
+                pointer-events: auto !important;
+            }
+
+            .modal-dialog {
+                pointer-events: auto !important;
+            }
             /* Respect reduced motion preference */
             @@media (prefers-reduced-motion: reduce) {
                 .se-navbar,
@@ -491,7 +508,6 @@
             }
     </style>
 </head>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.7/signalr.min.js"></script>
 <body>
 
     @{
@@ -607,6 +623,9 @@
         </main>
     </div>
 
+    @* Allow pages to render modal markup at the root so modals are direct children of body (prevents stacking/context issues) *@
+    @RenderSection("Modals", required: false)
+
     <footer class="se-footer">
         <div class="se-footer-inner">
             <span>&copy; 2026 SmartEdu.RazorWeb</span>
@@ -616,7 +635,9 @@
 
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/modal-debug.js" asp-append-version="true"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.7/signalr.min.js"></script>
 
     @await RenderSectionAsync("Scripts", required: false)
 </body>

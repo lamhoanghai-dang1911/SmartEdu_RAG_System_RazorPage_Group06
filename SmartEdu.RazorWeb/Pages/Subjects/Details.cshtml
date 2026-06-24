@@ -1,0 +1,125 @@
+@page
+@model SmartEdu.RazorWeb.Pages.Subjects.DetailsModel
+@{
+    ViewData["Title"] = "Subject Details";
+}
+
+<div class="se-up-header">
+    <svg viewBox="0 0 24 24" stroke-width="1.8"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" /><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" /></svg>
+    <h2>Subject: @Model.Subject?.Name</h2>
+</div>
+
+<div class="se-card">
+    <div class="se-card-head">
+        <div class="se-card-head-left">
+            <svg viewBox="0 0 24 24" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" /><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" /></svg>
+            Subject information
+        </div>
+        <a class="se-btn-sm" asp-page="/Subjects/Index">Back</a>
+    </div>
+    <div class="se-card-body">
+        <div style="display:flex;gap:20px;flex-wrap:wrap">
+            <div style="flex:1;min-width:260px">
+                <h5>Details</h5>
+                <p><strong>Name:</strong> @Model.Subject?.Name</p>
+                <p><strong>Description:</strong> @Model.Subject?.Description</p>
+                <p><strong>Created:</strong> @Model.Subject?.CreatedAt.ToString("yyyy-MM-dd")</p>
+            </div>
+
+            <div style="flex:1;min-width:260px">
+                <h5>Assigned Lecturers</h5>
+                <ul id="lecturer-list">
+                    @foreach (var l in Model.AssignedLecturers)
+                    {
+                        <li>@l.FullName (@l.Username) @if (l.IsLeader) { <span class="se-muted-sm">- Leader</span> }</li>
+                    }
+                </ul>
+            </div>
+
+            <div style="flex:1;min-width:260px">
+                <h5>Enrolled Students</h5>
+                <ul id="student-list">
+                    @foreach (var s in Model.EnrolledStudents)
+                    {
+                        <li>@s.FullName (@s.Username)</li>
+                    }
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        (function () {
+            const subjectId = '@Model.SubjectId';
+            const connection = new signalR.HubConnectionBuilder()
+                .withUrl('/subjectHub')
+                .withAutomaticReconnect()
+                .build();
+
+            connection.on('StudentAssigned', function (studentId) {
+                console.log('StudentAssigned', studentId);
+                refreshStudents();
+            });
+
+            connection.on('StudentRemoved', function (studentId) {
+                console.log('StudentRemoved', studentId);
+                refreshStudents();
+            });
+
+            connection.on('LecturerAssigned', function (lecturerId) {
+                console.log('LecturerAssigned', lecturerId);
+                refreshLecturers();
+            });
+
+            connection.on('ImportCompleted', function (total) {
+                console.log('ImportCompleted', total);
+                refreshStudents();
+            });
+
+            function escapeHtml(unsafe) {
+                if (!unsafe && unsafe !== 0) return '';
+                return String(unsafe).replace(/[&"'<>]/g, function (s) {
+                    return ({'&':'&amp;','"':'&quot;',"'":'&#39;','<':'&lt;', '>':'&gt;'})[s];
+                });
+            }
+
+            async function refreshStudents() {
+                try {
+                    const res = await fetch('?handler=Students&subjectId=' + encodeURIComponent(subjectId), { credentials: 'same-origin' });
+                    if (!res.ok) return console.error('Failed to fetch students', res.status);
+                    const data = await res.json();
+                    const list = document.getElementById('student-list');
+                    if (!list) return;
+                    list.innerHTML = data.map(function (d) {
+                        const name = d.fullName || d.FullName || '';
+                        const user = d.username || d.Username || '';
+                        return '<li>' + escapeHtml(name) + ' (' + escapeHtml(user) + ')</li>';
+                    }).join('');
+                } catch (e) { console.error('refreshStudents error', e); }
+            }
+
+            async function refreshLecturers() {
+                try {
+                    const res = await fetch('?handler=Lecturers&subjectId=' + encodeURIComponent(subjectId), { credentials: 'same-origin' });
+                    if (!res.ok) return console.error('Failed to fetch lecturers', res.status);
+                    const data = await res.json();
+                    const list = document.getElementById('lecturer-list');
+                    if (!list) return;
+                    list.innerHTML = data.map(function (d) {
+                        const name = d.fullName || d.FullName || '';
+                        const user = d.username || d.Username || '';
+                        const leader = d.isLeader || d.IsLeader ? ' <span class="se-muted-sm">- Leader</span>' : '';
+                        return '<li>' + escapeHtml(name) + ' (' + escapeHtml(user) + ')' + leader + '</li>';
+                    }).join('');
+                } catch (e) { console.error('refreshLecturers error', e); }
+            }
+
+            connection.start().then(function () {
+                console.log('SubjectHub connected');
+                try { connection.invoke('JoinSubjectGroup', String(subjectId)); } catch (e) { console.error(e); }
+            }).catch(function (err) { console.error(err.toString()); });
+        })();
+    </script>
+}
