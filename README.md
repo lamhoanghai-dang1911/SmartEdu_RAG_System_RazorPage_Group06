@@ -155,3 +155,6 @@ ChunkText(text, chunkSize: 800, overlapFraction: 0.1)
 - Embedding chạy dưới dạng **background task** (`Task.Run` với scope) — theo dõi log/exception để đảm bảo không crash.
 - Cân nhắc thêm **rate-limit / retry** khi gọi external API (Hugging Face).
 - Vector `EmbeddingJson` được lưu trong bảng `DocumentChunks`. Nếu vectors lớn, cân nhắc chuyển sang **vector database** chuyên dụng thay vì lưu trực tiếp trong SQL.
+
+## Sơ đồ kiến trúc
+<img width="1158" height="527" alt="image" src="https://github.com/user-attachments/assets/c4dac39b-6a0d-4871-8e38-0c7206e9196a" />
