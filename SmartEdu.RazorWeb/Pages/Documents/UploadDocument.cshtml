@@ -340,6 +340,22 @@
             </div>
         </div>
     }
+    <div id="chunk-review-modal" class="se-modal-overlay">
+        <div class="se-modal-box">
+            <div class="se-modal-head">
+                <h3>
+                    <svg viewBox="0 0 24 24" stroke-width="1.8"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /></svg>
+                    Xem chunk
+                </h3>
+                <button type="button" class="se-modal-close" id="chunk-modal-close" aria-label="Đóng">
+                    <svg viewBox="0 0 24 24" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+                </button>
+            </div>
+            <div class="se-modal-body">
+                <div id="chunk-list"></div>
+            </div>
+        </div>
+    </div>
 }
 
     .se-btn-row {
@@ -836,6 +852,10 @@ else
                                 <td><span class="se-muted-sm">@d.FileName</span></td>
                                 <td>
                                     <div class="se-btn-row">
+                                        <button type="button" class="se-btn-sm" onclick="showChunks(@d.Id)">
+                                            <svg viewBox="0 0 24 24" stroke-width="1.8"><circle cx="12" cy="12" r="10" /><path d="M8 12h8" /></svg>
+                                            Xem chunk
+                                        </button>
                                         <button type="button"
                                                 class="se-btn-sm trigger-btn"
                                                 data-docid="@d.Id"
@@ -1028,7 +1048,11 @@ else
                             </td>
                             <td><span class="se-muted-sm">${escapeHtml(d.fileName)}</span></td>
                             <td>
-                                <div class="se-btn-row">
+                                    <div class="se-btn-row">
+                                    <button type="button" class="se-btn-sm" onclick="showChunks(${d.id})">
+                                        <svg viewBox="0 0 24 24" stroke-width="1.8"><circle cx="12" cy="12" r="10" /><path d="M8 12h8" /></svg>
+                                        Xem chunk
+                                    </button>
                                     <button type="button" class="se-btn-sm trigger-btn" data-docid="${d.id}" ${embedDisabled ? 'disabled' : ''}>
                                         <svg viewBox="0 0 24 24" stroke-width="1.8"><rect x="4" y="4" width="16" height="16" rx="2" /><path d="M9 9l6 3-6 3V9z" /></svg>
                                         Kích hoạt Embedding
@@ -1060,12 +1084,58 @@ else
                             btn.removeEventListener('click', triggerBtnHandler);
                             btn.addEventListener('click', triggerBtnHandler);
                         });
+                        // bind view chunk buttons
+                        document.querySelectorAll('.se-btn-sm[onclick^="showChunks"]').forEach(btn => {
+                            // nothing to bind, inline onclick is sufficient
+                        });
                     }
                 }
                 catch (e) {
                     console.error('Failed to refresh documents after DocumentAdded', e);
                 }
             });
+
+            window.showChunks = async function (documentId) {
+                try {
+                    const resp = await fetch('?handler=Chunks&documentId=' + encodeURIComponent(documentId), { credentials: 'same-origin' });
+                    if (!resp.ok) {
+                        alert('Không thể lấy thông tin chunk');
+                        return;
+                    }
+                    const chunks = await resp.json();
+                    const list = safeGet('chunk-list');
+                    if (!list) return;
+                    list.innerHTML = '';
+                    if (!chunks || chunks.length === 0) {
+                        list.innerHTML = '<div class="chunk-log-item">Không có chunk nào.</div>';
+                    } else {
+                        chunks.forEach(c => {
+                            const div = document.createElement('div');
+                            div.className = 'chunk-log-item';
+                            const pre = document.createElement('pre');
+                            pre.style.whiteSpace = 'pre-wrap';
+                            pre.style.margin = '0';
+                            pre.textContent = c.content;
+                            div.innerHTML = `<strong>Chunk ${c.index + 1}/${chunks.length}</strong>`;
+                            div.appendChild(pre);
+                            list.appendChild(div);
+                        });
+                    }
+                    const overlay = safeGet('chunk-review-modal');
+                    if (overlay) overlay.classList.add('se-modal-open');
+                } catch (e) {
+                    console.error('Failed to load chunks', e);
+                    alert('Lỗi khi tải chunk');
+                }
+            };
+
+            // chunk modal close handlers
+            const chunkCloseBtn = safeGet('chunk-modal-close');
+            if (chunkCloseBtn) chunkCloseBtn.addEventListener('click', () => {
+                const overlay = safeGet('chunk-review-modal'); if (overlay) overlay.classList.remove('se-modal-open');
+            });
+            const chunkOverlay = safeGet('chunk-review-modal');
+            if (chunkOverlay) chunkOverlay.addEventListener('click', function (e) { if (e.target === chunkOverlay) chunkOverlay.classList.remove('se-modal-open'); });
 
             function triggerBtnHandler() {
                 if (this.disabled) return;

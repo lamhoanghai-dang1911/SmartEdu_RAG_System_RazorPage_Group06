@@ -129,6 +129,28 @@ namespace SmartEdu.RazorWeb.Pages.Documents
             return new JsonResult(result);
         }
 
+        public async Task<IActionResult> OnGetChunksAsync(int documentId)
+        {
+            var doc = await _documentService.GetByIdAsync(documentId);
+            if (doc == null) return NotFound();
+
+            var userId = HttpContext.Session.GetInt32("UserId");
+            if (!userId.HasValue) return Unauthorized();
+
+            // allow leader or assigned lecturers to view chunks
+            var can = await _subjectService.CanUploadDocument(userId.Value, doc.SubjectId);
+            if (!can)
+            {
+                var assigned = await _subjectService.GetSubjectsByLecturerIdAsync(userId.Value);
+                var isAssigned = assigned.Any(s => s.Id == doc.SubjectId);
+                if (!isAssigned) return Forbid();
+            }
+
+            var chunks = await _documentService.GetChunksByDocumentIdAsync(documentId);
+            var result = chunks.Select(c => new { index = c.ChunkIndex, content = c.Content });
+            return new JsonResult(result);
+        }
+
         public async Task<IActionResult> OnPostTriggerEmbeddingAsync(int documentId)
         {
             // only leaders can trigger - re-check
