@@ -27,7 +27,6 @@ namespace SmartEdu.Business.Services
             if (user == null || user.IsDeleted)
                 throw new InvalidOperationException("Không tìm thấy tài khoản.");
 
-            // Verify current password
             if (!BCrypt.Net.BCrypt.Verify(dto.OldPassword, user.PasswordHash))
                 throw new InvalidOperationException("Mật khẩu hiện tại không đúng.");
 
@@ -128,6 +127,8 @@ namespace SmartEdu.Business.Services
                 await _userRepo.SaveChangesAsync();
             }
         }
+
+
 
         public async Task<bool> IsUsernameTakenAsync(string username)
         {
