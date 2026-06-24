@@ -22,11 +22,14 @@ namespace SmartEdu.RazorWeb
                 options.UseSqlServer(connectionString));
 
             // 2. Đăng ký các dịch vụ Business Layer (Nơi chứa ChatService, etc.)
-            // Bạn nên tạo một class "DependencyInjection.cs" trong tầng Business để quản lý
+            // Bạn tạo một class "DependencyInjection.cs" trong tầng Business để quản lý
+
+
+            
             builder.Services.AddBusinessServices();
 
             // 3. Add services to the container
-            // Register Razor Pages and add the session authorize filter globally via MVC options
+            // Register Razor Pages and add the session authorize filter globally  MVC options
             builder.Services.AddRazorPages()
                 .AddMvcOptions(options => options.Filters.Add<SmartEdu.RazorWeb.Filters.SessionAuthorizeFilter>());
             // Cookie authentication for claims-based checks
