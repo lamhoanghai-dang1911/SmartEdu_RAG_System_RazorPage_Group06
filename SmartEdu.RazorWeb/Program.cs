@@ -22,7 +22,6 @@ namespace SmartEdu.RazorWeb
                 options.UseSqlServer(connectionString));
 
             // 2. Đăng ký các dịch vụ Business Layer (Nơi chứa ChatService, etc.)
-            // Bạn tạo một class "DependencyInjection.cs" trong tầng Business để quản lý
 
 
             
