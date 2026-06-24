@@ -16,20 +16,21 @@ namespace SmartEdu.RazorWeb
         {
             var builder = WebApplication.CreateBuilder(args);
 
-            // 1. Cấu hình DbContext từ tầng DataAccess
+            // 1. Cấu hình DbContext  tầng DataAccess
             var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
             builder.Services.AddDbContext<AppDbContext>(options =>
                 options.UseSqlServer(connectionString));
 
             // 2. Đăng ký các dịch vụ Business Layer (Nơi chứa ChatService, etc.)
-            // Bạn nên tạo một class "DependencyInjection.cs" trong tầng Business để quản lý
+            // Bạn tạo một class "DependencyInjection.cs" trong tầng Business để quản lý
+
+
+            
             builder.Services.AddBusinessServices();
 
             // 3. Add services to the container
-            // Register Razor Pages and add the session authorize filter globally via MVC options
             builder.Services.AddRazorPages()
                 .AddMvcOptions(options => options.Filters.Add<SmartEdu.RazorWeb.Filters.SessionAuthorizeFilter>());
-            // Cookie authentication for claims-based checks
             builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
                 .AddCookie(options =>
                 {
@@ -68,7 +69,6 @@ namespace SmartEdu.RazorWeb
 
                 await DataSeeder.SeedAdminAsync(context);
             }
-            // 4. Configure the HTTP request pipeline
             if (!app.Environment.IsDevelopment())
             {
                 app.UseExceptionHandler("/Error");
