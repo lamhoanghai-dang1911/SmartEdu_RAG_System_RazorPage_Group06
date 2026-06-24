@@ -28,7 +28,6 @@ namespace SmartEdu.RazorWeb
             
             builder.Services.AddBusinessServices();
 
-            // 3. Add services to the container
             builder.Services.AddRazorPages()
                 .AddMvcOptions(options => options.Filters.Add<SmartEdu.RazorWeb.Filters.SessionAuthorizeFilter>());
             builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
