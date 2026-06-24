@@ -69,7 +69,6 @@ namespace SmartEdu.RazorWeb
 
                 await DataSeeder.SeedAdminAsync(context);
             }
-            // 4. Configure the HTTP request pipeline
             if (!app.Environment.IsDevelopment())
             {
                 app.UseExceptionHandler("/Error");
