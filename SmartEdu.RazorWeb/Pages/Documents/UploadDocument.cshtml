@@ -1095,39 +1095,42 @@ else
                 }
             });
 
-            window.showChunks = async function (documentId) {
-                try {
-                    const resp = await fetch('?handler=Chunks&documentId=' + encodeURIComponent(documentId), { credentials: 'same-origin' });
-                    if (!resp.ok) {
-                        alert('Không thể lấy thông tin chunk');
-                        return;
-                    }
-                    const chunks = await resp.json();
-                    const list = safeGet('chunk-list');
-                    if (!list) return;
-                    list.innerHTML = '';
-                    if (!chunks || chunks.length === 0) {
-                        list.innerHTML = '<div class="chunk-log-item">Không có chunk nào.</div>';
-                    } else {
-                        chunks.forEach(c => {
-                            const div = document.createElement('div');
-                            div.className = 'chunk-log-item';
-                            const pre = document.createElement('pre');
-                            pre.style.whiteSpace = 'pre-wrap';
-                            pre.style.margin = '0';
-                            pre.textContent = c.content;
-                            div.innerHTML = `<strong>Chunk ${c.index + 1}/${chunks.length}</strong>`;
-                            div.appendChild(pre);
-                            list.appendChild(div);
-                        });
-                    }
-                    const overlay = safeGet('chunk-review-modal');
-                    if (overlay) overlay.classList.add('se-modal-open');
-                } catch (e) {
-                    console.error('Failed to load chunks', e);
-                    alert('Lỗi khi tải chunk');
+                    window.showChunks = async function (documentId) {
+            try {
+                const resp = await fetch('?handler=Chunks&documentId=' + encodeURIComponent(documentId), { credentials: 'same-origin' });
+                if (!resp.ok) { alert('Không thể lấy thông tin chunk'); return; }
+
+                const chunks = await resp.json();
+                const list = safeGet('chunk-list');
+                if (!list) return;
+                list.innerHTML = '';
+
+                if (!chunks || chunks.length === 0) {
+                    list.innerHTML = '<div class="chunk-log-item">Không có chunk nào.</div>';
+                } else {
+                    chunks.forEach(c => {
+                        const div = document.createElement('div');
+                        div.className = 'chunk-log-item';
+                        div.innerHTML = `
+                            <strong>Chunk #${c.index + 1} / ${c.total}</strong>
+                            <div style="display:flex;gap:12px;flex-wrap:wrap;margin:5px 0 8px;font-size:11px;color:#6B7B8D;">
+                                <span title="Số ký tự thực tế">
+                                    📏 ${c.charLength} ký tự
+                                </span>
+                            </div>
+                            <p style="font-size:12px;color:#3D4F63;line-height:1.6;margin:0;white-space:pre-wrap;">${escapeHtml(c.content)}</p>
+                        `;
+                        list.appendChild(div);
+                    });
                 }
-            };
+
+                const overlay = safeGet('chunk-review-modal');
+                if (overlay) overlay.classList.add('se-modal-open');
+            } catch (e) {
+                console.error('Failed to load chunks', e);
+                alert('Lỗi khi tải chunk');
+            }
+        };
 
             // chunk modal close handlers
             const chunkCloseBtn = safeGet('chunk-modal-close');

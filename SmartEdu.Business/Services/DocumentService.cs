@@ -1,4 +1,7 @@
-﻿using DocumentFormat.OpenXml.Packaging;
+﻿using DocumentFormat.OpenXml.Bibliography;
+using DocumentFormat.OpenXml.Office2013.Word;
+using DocumentFormat.OpenXml.Packaging;
+using DocumentFormat.OpenXml.Wordprocessing;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -47,19 +50,31 @@ namespace SmartEdu.Business.Services
             _notification = notification;
         }
 
-        public async Task<IEnumerable<SmartEdu.Shared.DTOs.DocumentChunkDto>> GetChunksByDocumentIdAsync(int documentId)
+        public async Task<IEnumerable<DocumentChunkDto>> GetChunksByDocumentIdAsync(int documentId)
         {
             var chunks = await _chunkRepo.GetAllAsync(c => c.DocumentId == documentId);
             var doc = await _docRepo.GetByIdAsync(documentId);
             var title = doc?.Title ?? string.Empty;
-            return chunks
-                .OrderBy(c => c.ChunkIndex)
-                .Select(c => new SmartEdu.Shared.DTOs.DocumentChunkDto
-                {
-                    ChunkIndex = c.ChunkIndex,
-                    Content = c.Content,
-                    DocumentTitle = title
-                });
+
+            const int chunkSize = 800;
+            const double overlapFraction = 0.1;
+            int overlap = (int)Math.Round(chunkSize * overlapFraction);
+            int step = chunkSize - overlap;
+
+            var ordered = chunks.OrderBy(c => c.ChunkIndex).ToList();
+            int total = ordered.Count;
+
+            return ordered.Select(c => new DocumentChunkDto
+            {
+                ChunkIndex = c.ChunkIndex,
+                Content = c.Content,
+                DocumentTitle = title,
+                CharLength = c.Content?.Length ?? 0,
+                TotalChunks = total,
+                CharStart = c.ChunkIndex * step,
+                CharEnd = c.ChunkIndex * step + (c.Content?.Length ?? 0),
+                OverlapSize = overlap
+            });
         }
 
         public async Task<IEnumerable<DocumentDto>> GetAllAsync(int? subjectId = null)
@@ -177,35 +192,89 @@ namespace SmartEdu.Business.Services
             {
                 var ext = Path.GetExtension(doc.FilePath).ToLowerInvariant();
                 var fileType = (doc.FileType ?? ext.TrimStart('.')).ToLowerInvariant();
-                string rawText = string.Empty;
+
+                // List chunk cuối cùng: (text, charStart, charEnd, pageNumber, sectionTitle, sourceType)
+                var allChunks = new List<(string Text, int CharStart, int CharEnd, int? PageNumber, string? SectionTitle, string SourceType)>();
 
                 if (fileType == "pdf" || ext == ".pdf")
                 {
-                    using var pdf = PdfDocument.Open(doc.FilePath);
-                    var sb = new StringBuilder();
-                    foreach (var page in pdf.GetPages())
+                    var pages = ExtractPagesFromPdf(doc.FilePath);
+                    if (!pages.Any()) throw new InvalidOperationException("Không thể trích xuất văn bản từ PDF.");
+
+                    // Gộp tất cả text để chunk, nhưng track page boundary
+                    var fullText = new StringBuilder();
+                    var pageBoundaries = new List<(int Start, int End, int PageNumber)>();
+
+                    foreach (var (text, pageNum) in pages)
                     {
-                        sb.AppendLine(page.Text);
+                        int start = fullText.Length;
+                        fullText.Append(text);
+                        fullText.Append('\n');
+                        pageBoundaries.Add((start, fullText.Length, pageNum));
                     }
-                    rawText = sb.ToString();
+
+                    var rawText = fullText.ToString();
+                    rawText = System.Text.RegularExpressions.Regex.Replace(rawText, @"\r\n|\r", "\n");
+                    rawText = System.Text.RegularExpressions.Regex.Replace(rawText, @"[ \t]+", " ");
+                    rawText = System.Text.RegularExpressions.Regex.Replace(rawText, @"\n{3,}", "\n\n");
+                    rawText = rawText.Trim();
+
+                    foreach (var (text, charStart, charEnd) in ChunkText(rawText, 800, 0.1))
+                    {
+                        // Tìm page chứa phần lớn chunk này
+                        int midPoint = charStart + (charEnd - charStart) / 2;
+                        var page = pageBoundaries.FirstOrDefault(p => p.Start <= midPoint && midPoint < p.End);
+                        allChunks.Add((text, charStart, charEnd, page.PageNumber > 0 ? page.PageNumber : (int?)null, null, "pdf"));
+                    }
                 }
                 else if (fileType == "docx" || ext == ".docx")
                 {
-                    rawText = ExtractTextFromDocx(doc.FilePath);
+                    var sections = ExtractSectionsFromDocx(doc.FilePath);
+                    if (!sections.Any()) throw new InvalidOperationException("Không thể trích xuất văn bản từ DOCX.");
+
+                    var fullText = new StringBuilder();
+                    var sectionBoundaries = new List<(int Start, int End, string? Heading)>();
+
+                    foreach (var (text, heading) in sections)
+                    {
+                        int start = fullText.Length;
+                        fullText.Append(text);
+                        fullText.Append('\n');
+                        sectionBoundaries.Add((start, fullText.Length, heading));
+                    }
+
+                    var rawText = fullText.ToString();
+                    rawText = System.Text.RegularExpressions.Regex.Replace(rawText, @"\r\n|\r", "\n");
+                    rawText = System.Text.RegularExpressions.Regex.Replace(rawText, @"[ \t]+", " ");
+                    rawText = System.Text.RegularExpressions.Regex.Replace(rawText, @"\n{3,}", "\n\n");
+                    rawText = rawText.Trim();
+
+                    foreach (var (text, charStart, charEnd) in ChunkText(rawText, 800, 0.1))
+                    {
+                        int midPoint = charStart + (charEnd - charStart) / 2;
+                        var section = sectionBoundaries.FirstOrDefault(s => s.Start <= midPoint && midPoint < s.End);
+                        allChunks.Add((text, charStart, charEnd, null, section.Heading, "docx"));
+                    }
+                }
+                else if (fileType == "pptx" || ext == ".pptx")
+                {
+                    var slides = ExtractSlidesFromPptx(doc.FilePath);
+                    if (!slides.Any()) throw new InvalidOperationException("Không thể trích xuất văn bản từ PPTX.");
+
+                    // PPTX: mỗi slide là 1 chunk tự nhiên, không cần ChunkText
+                    int idx2 = 0;
+                    foreach (var (text, slideNum) in slides)
+                    {
+                        allChunks.Add((text.Trim(), idx2 * 1000, idx2 * 1000 + text.Length, slideNum, null, "pptx"));
+                        idx2++;
+                    }
                 }
                 else
                 {
-                    throw new InvalidOperationException("Chỉ hỗ trợ trích xuất văn bản cho PDF và DOCX.");
+                    throw new InvalidOperationException("Chỉ hỗ trợ PDF, DOCX và PPTX.");
                 }
 
-                if (string.IsNullOrWhiteSpace(rawText))
-                {
-                    throw new InvalidOperationException("Không thể trích xuất văn bản từ file.");
-                }
-
-                var chunkList = ChunkText(rawText, 800, 0.1).ToList();
-
-                int totalChunks = chunkList.Count;
+                int totalChunks = allChunks.Count;
                 var hfToken = _configuration["HuggingFace:Token"];
                 if (string.IsNullOrWhiteSpace(hfToken))
                     throw new InvalidOperationException("Hugging Face token không được cấu hình.");
@@ -219,39 +288,29 @@ namespace SmartEdu.Business.Services
                 int idx = 0;
                 var batchSize = 5;
                 var pendingCount = 0;
-                foreach (var text in chunkList)
+                foreach (var (text, charStart, charEnd, pageNumber, sectionTitle, sourceType) in allChunks)
                 {
-                    // Save per-chunk log before calling external service
-                    //await SaveLogAsync(documentId, $"Processing chunk {idx}", "Processing");
-
                     string formattedText = $"passage: {text}";
                     var payload = new { inputs = formattedText };
                     var json = JsonSerializer.Serialize(payload);
                     using var content = new StringContent(json, Encoding.UTF8, "application/json");
 
                     var resp = await client.PostAsync(modelUrl, content);
-
                     if (resp.StatusCode == System.Net.HttpStatusCode.ServiceUnavailable)
-                    {
                         throw new InvalidOperationException("Server AI đang khởi động, vui lòng đợi 20 giây và bấm nút lại!");
-                    }
 
                     resp.EnsureSuccessStatusCode();
                     var respJson = await resp.Content.ReadAsStringAsync();
 
                     using var docJson = JsonDocument.Parse(respJson);
                     var vector = new List<float>();
-
                     var root = docJson.RootElement;
                     if (root.ValueKind == JsonValueKind.Array)
                     {
                         var firstElement = root[0];
                         var vectorArray = firstElement.ValueKind == JsonValueKind.Number ? root : firstElement;
-
                         foreach (var el in vectorArray.EnumerateArray())
-                        {
                             vector.Add(el.GetSingle());
-                        }
                     }
 
                     var chunkEntity = new DocumentChunk
@@ -261,10 +320,9 @@ namespace SmartEdu.Business.Services
                         ChunkIndex = idx++,
                         EmbeddingJson = JsonSerializer.Serialize(vector),
                         EmbeddingModel = "multilingual-e5-base",
-                        CreatedAt = DateTime.UtcNow
+                        CreatedAt = DateTime.UtcNow,
                     };
 
-                    // add to repo and flush in batches to reduce IO
                     await _chunkRepo.AddAsync(chunkEntity);
                     pendingCount++;
                     if (pendingCount >= batchSize)
@@ -273,34 +331,10 @@ namespace SmartEdu.Business.Services
                         pendingCount = 0;
                     }
 
-                    // Log successful chunk embedding
-                    await _notification.ChunkLogCreated(
-                        documentId,
-                        chunkEntity.ChunkIndex,
-                        totalChunks,
-                        chunkEntity.Content,
-                        doc.SubjectId);
-
-                    await _notification.ChunkProcessed(
-                        documentId,
-                        chunkEntity.ChunkIndex + 1,
-                        totalChunks,
-                        doc.SubjectId);
-
+                    await _notification.ChunkLogCreated(documentId, chunkEntity.ChunkIndex, totalChunks, chunkEntity.Content, doc.SubjectId);
+                    await _notification.ChunkProcessed(documentId, chunkEntity.ChunkIndex + 1, totalChunks, doc.SubjectId);
                     await Task.Delay(300);
                 }
-                // flush remaining pending chunks
-                if (pendingCount > 0)
-                {
-                    await _chunkRepo.SaveChangesAsync();
-                }
-                //await SaveLogAsync(documentId, "All chunks saved", "Info");
-                doc.Status = DocumentStatus.Ready;
-                doc.UpdatedAt = DateTime.UtcNow;
-                _docRepo.Update(doc);
-                //await SaveLogAsync(documentId, "Document status set to Ready", "Info");
-                await _docRepo.SaveChangesAsync();
-                await _notification.ProcessingCompleted(documentId, doc.SubjectId);
             }
             catch (Exception ex)
             {
@@ -335,7 +369,9 @@ namespace SmartEdu.Business.Services
             return sb.ToString();
         }
 
-        private static IEnumerable<string> ChunkText(string text, int chunkSize = 800, double overlapFraction = 0.1)
+        // Thay toàn bộ hàm ChunkText cũ bằng hàm này
+        private static IEnumerable<(string Text, int CharStart, int CharEnd)> ChunkText(
+            string text, int chunkSize = 800, double overlapFraction = 0.1)
         {
             if (string.IsNullOrWhiteSpace(text)) yield break;
 
@@ -345,7 +381,8 @@ namespace SmartEdu.Business.Services
             while (pos < text.Length)
             {
                 int len = Math.Min(chunkSize, text.Length - pos);
-                yield return text.Substring(pos, len).Trim();
+                var trimmed = text.Substring(pos, len).Trim();
+                yield return (trimmed, pos, pos + len);
                 pos += step;
             }
         }
@@ -438,6 +475,92 @@ namespace SmartEdu.Business.Services
                 !d.IsDeleted);
 
             return docs.Any();
+        }
+
+        // PDF — trả về list (text, pageNumber)
+        private static List<(string Text, int PageNumber)> ExtractPagesFromPdf(string path)
+        {
+            var pages = new List<(string, int)>();
+            using var pdf = PdfDocument.Open(path);
+            foreach (var page in pdf.GetPages())
+            {
+                var text = page.Text?.Trim();
+                if (!string.IsNullOrWhiteSpace(text))
+                    pages.Add((text, page.Number));
+            }
+            return pages;
+        }
+
+        // DOCX — trả về list (text, headingGanNhat)
+        private static List<(string Text, string? SectionTitle)> ExtractSectionsFromDocx(string path)
+        {
+            var sections = new List<(string, string?)>();
+            using var doc = WordprocessingDocument.Open(path, false);
+            var body = doc.MainDocumentPart?.Document?.Body;
+            if (body == null) return sections;
+
+            string? currentHeading = null;
+            var buffer = new StringBuilder();
+
+            foreach (var para in body.Elements<DocumentFormat.OpenXml.Wordprocessing.Paragraph>())
+            {
+                var style = para.ParagraphProperties?.ParagraphStyleId?.Val?.Value ?? "";
+                bool isHeading = style.StartsWith("Heading", StringComparison.OrdinalIgnoreCase)
+                              || style.StartsWith("Title", StringComparison.OrdinalIgnoreCase);
+
+                if (isHeading)
+                {
+                    // flush buffer trước khi chuyển heading
+                    if (buffer.Length > 0)
+                    {
+                        sections.Add((buffer.ToString().Trim(), currentHeading));
+                        buffer.Clear();
+                    }
+                    currentHeading = para.InnerText?.Trim();
+                }
+                else
+                {
+                    var text = para.InnerText?.Trim();
+                    if (!string.IsNullOrEmpty(text))
+                        buffer.AppendLine(text);
+                }
+            }
+
+            if (buffer.Length > 0)
+                sections.Add((buffer.ToString().Trim(), currentHeading));
+
+            return sections;
+        }
+
+        // PPTX — trả về list (text, slideNumber)
+        private static List<(string Text, int SlideNumber)> ExtractSlidesFromPptx(string path)
+        {
+            var slides = new List<(string, int)>();
+            using var prs = DocumentFormat.OpenXml.Packaging.PresentationDocument.Open(path, false);
+            var slideIds = prs.PresentationPart?.Presentation?.SlideIdList?.Elements<DocumentFormat.OpenXml.Presentation.SlideId>().ToList();
+            if (slideIds == null) return slides;
+
+            for (int i = 0; i < slideIds.Count; i++)
+            {
+                var relId = slideIds[i].RelationshipId?.Value;
+                if (relId == null) continue;
+
+                var slidePart = (DocumentFormat.OpenXml.Packaging.SlidePart)prs.PresentationPart!.GetPartById(relId);
+                var sb = new StringBuilder();
+
+                foreach (var para in slidePart.Slide.Descendants<DocumentFormat.OpenXml.Drawing.Paragraph>())
+                {
+                    var text = string.Concat(para.Descendants<DocumentFormat.OpenXml.Drawing.Run>()
+                        .Select(r => r.Text?.Text ?? "")).Trim();
+                    if (!string.IsNullOrEmpty(text))
+                        sb.AppendLine(text);
+                }
+
+                var content = sb.ToString().Trim();
+                if (!string.IsNullOrEmpty(content))
+                    slides.Add((content, i + 1));
+            }
+            return slides;
         }
     }
 }
