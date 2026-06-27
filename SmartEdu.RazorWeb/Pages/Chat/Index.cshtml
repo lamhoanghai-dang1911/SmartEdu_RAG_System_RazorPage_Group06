@@ -684,10 +684,11 @@
         }
 
         if (!activeSessionId) {
-        addSessionToList({ sessionId: data.sessionId, title: q.length > 40 ? q.substring(0, 40) + '...' : q, subjectName: '' });
-        setActiveSession(data.sessionId);
+            addSessionToList({ sessionId: data.sessionId, title: q.length > 40 ? q.substring(0, 40) + '...' : q, subjectName: '' });
+            setActiveSession(data.sessionId);
         }
 
+        // Render assistant response with sources
         appendLocalMessage('assistant', data.answer, data.sources || []);
         input.value = '';
         }
@@ -699,10 +700,10 @@
         row.className = 'message-row ' + (role === 'user' ? 'row-user' : 'row-assistant');
 
         if (role !== 'user') {
-        const av = document.createElement('div');
-        av.className = 'se-avatar';
-        av.innerHTML = '<svg viewBox="0 0 24 24" stroke-width="1.8"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>';
-        row.appendChild(av);
+            const av = document.createElement('div');
+            av.className = 'se-avatar';
+            av.innerHTML = '<svg viewBox="0 0 24 24" stroke-width="1.8"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>';
+            row.appendChild(av);
         }
 
         const bubble = document.createElement('div');
@@ -711,11 +712,41 @@
         row.appendChild(bubble);
         wrapper.appendChild(row);
 
+        // Display sources with proper formatting
         if (role !== 'user' && sources && sources.length) {
-        const src = document.createElement('div');
-        src.className = 'message-meta';
-        src.innerText = 'Nguồn: ' + sources.join(', ');
-        wrapper.appendChild(src);
+            const srcContainer = document.createElement('div');
+            srcContainer.className = 'message-meta';
+
+            // If sources are SourceInfoDto objects, format them properly
+            const sourceTexts = sources.map(s => {
+                if (typeof s === 'string') {
+                    return s;
+                }
+                // s is SourceInfoDto object
+                if (!s.documentTitle) return '';
+
+                let display = '';
+                switch(s.sourceType?.toLowerCase()) {
+                    case 'pdf':
+                        display = `📄 ${s.documentTitle}`;
+                        if (s.pageNumber) display += ` · Trang ${s.pageNumber}`;
+                        break;
+                    case 'docx':
+                        display = `📝 ${s.documentTitle}`;
+                        if (s.sectionTitle) display += ` · Mục: ${s.sectionTitle}`;
+                        break;
+                    case 'pptx':
+                        display = `🖼 ${s.documentTitle}`;
+                        if (s.pageNumber) display += ` · Slide ${s.pageNumber}`;
+                        break;
+                    default:
+                        display = `📄 ${s.documentTitle}`;
+                }
+                return display;
+            }).filter(s => s);
+
+            srcContainer.innerHTML = '<strong>Nguồn:</strong> ' + sourceTexts.join(' | ');
+            wrapper.appendChild(srcContainer);
         }
 
         chatWindow.appendChild(wrapper);
@@ -814,20 +845,19 @@
         });
 
         connection = new signalR.HubConnectionBuilder()
-        .withUrl('/chatHub')
-        .withAutomaticReconnect()
-        .build();
+            .withUrl('/chatHub')
+            .withAutomaticReconnect()
+            .build();
 
-        connection.on('ReceiveAnswer', function (answer) {
-        appendLocalMessage('assistant', answer);
-        });
+        // NOTE: ReceiveAnswer handler removed - response is already handled via HTTP fetch in sendQuestion()
+        // Keeping it would cause duplicate messages
 
         connection.on('TitleUpdated', function (sessionId, newTitle) {
-        const el = document.querySelector('.session-item[data-sessionid="' + sessionId + '"]');
-        if (el) {
-        const titleEl = el.querySelector('.se-session-title');
-        if (titleEl) titleEl.innerText = newTitle;
-        }
+            const el = document.querySelector('.session-item[data-sessionid="' + sessionId + '"]');
+            if (el) {
+                const titleEl = el.querySelector('.se-session-title');
+                if (titleEl) titleEl.innerText = newTitle;
+            }
         });
 
         connection.on('SessionCreated', function (userId, sessionId, title, subjectName) {

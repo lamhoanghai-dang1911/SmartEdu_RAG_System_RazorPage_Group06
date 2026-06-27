@@ -41,7 +41,7 @@ namespace SmartEdu.Business.Services
         {
             if (!request.SubjectId.HasValue || request.SubjectId.Value <= 0)
             {
-                return new ChatResponseDto { SessionId = request.SessionId, Answer = "Vui lòng chọn môn học.", Sources = new List<string>() };
+                return new ChatResponseDto { SessionId = request.SessionId, Answer = "Vui lòng chọn môn học.", Sources = new List<SourceInfoDto>() };
             }
 
             var sessions = await _sessionRepo.GetAllAsync(s => s.SessionId == request.SessionId);
@@ -175,27 +175,76 @@ namespace SmartEdu.Business.Services
                 c => c.Document
             );
 
-            var topChunks = chunks.Select(c => new { Chunk = c, Score = CosineSimilarity(queryVector, JsonSerializer.Deserialize<float[]>(c.EmbeddingJson)) })
-                                  .OrderByDescending(s => s.Score).Take(3).ToList();
+            // Filter out chunks with invalid embeddings and calculate similarity scores
+            var topChunks = chunks
+                .Where(c => !string.IsNullOrWhiteSpace(c.EmbeddingJson))  // Lọc chunks có embedding hợp lệ
+                .Select(c => 
+                {
+                    try
+                    {
+                        var embeddingVector = JsonSerializer.Deserialize<float[]>(c.EmbeddingJson);
+                        if (embeddingVector == null || embeddingVector.Length == 0)
+                            return null;
+
+                        return new { Chunk = c, Score = CosineSimilarity(queryVector, embeddingVector) };
+                    }
+                    catch
+                    {
+                        // Bỏ qua chunks có embedding invalid
+                        return null;
+                    }
+                })
+                .Where(x => x != null)  // Loại bỏ các entries null
+                .OrderByDescending(s => s.Score)
+                .Take(3)
+                .ToList();
 
             var contextBuilder = new StringBuilder();
-            var sources = new HashSet<string>();
+            var sources = new List<SourceInfoDto>();
+
+            // Nếu không có chunks liên quan, thông báo cho user
+            if (!topChunks.Any())
+            {
+                string noContextAnswer = await GenerateGeminiResponseAsync("Không có tài liệu liên quan trong hệ thống.", request.Question);
+                var noContextMessage = new ChatMessage { ChatSessionId = session.Id, Role = "assistant", Content = noContextAnswer };
+                await _messageRepo.AddAsync(noContextMessage);
+                await _messageRepo.SaveChangesAsync();
+                await _notification.SendAnswerAsync(request.SessionId, noContextAnswer);
+                return new ChatResponseDto { SessionId = request.SessionId, Answer = noContextAnswer, Sources = new List<SourceInfoDto>() };
+            }
+
             foreach (var item in topChunks)
             {
                 contextBuilder.AppendLine($"[Nguồn: {item.Chunk.Document.Title}]\n{item.Chunk.Content}\n---\n");
-                sources.Add(item.Chunk.Document.Title);
+
+                // Tạo SourceInfoDto từ thông tin chunk
+                var sourceInfo = new SourceInfoDto
+                {
+                    DocumentTitle = item.Chunk.Document.Title,
+                    SourceType = item.Chunk.SourceType ?? "pdf",  // Default to pdf if not set
+                    PageNumber = item.Chunk.PageNumber,
+                    SectionTitle = item.Chunk.SectionTitle
+                };
+
+                // Chỉ thêm nếu chưa có source này trong danh sách (tránh trùng lặp)
+                if (!sources.Any(s => s.DocumentTitle == sourceInfo.DocumentTitle && 
+                                      s.SourceType == sourceInfo.SourceType && 
+                                      s.PageNumber == sourceInfo.PageNumber &&
+                                      s.SectionTitle == sourceInfo.SectionTitle))
+                {
+                    sources.Add(sourceInfo);
+                }
             }
 
             string answer = await GenerateGeminiResponseAsync(contextBuilder.ToString(), request.Question);
             var assistantMessage = new ChatMessage { ChatSessionId = session.Id, Role = "assistant", Content = answer };
             await _messageRepo.AddAsync(assistantMessage);
             await _messageRepo.SaveChangesAsync();
-            await _notification.SendAnswerAsync(
-                request.SessionId,
-                answer
-            );
 
-            return new ChatResponseDto { SessionId = request.SessionId, Answer = answer, Sources = sources.ToList() };
+            // NOTE: Removed SendAnswerAsync - response is sent via HTTP return below
+            // Keeping it would cause duplicate messages on frontend
+
+            return new ChatResponseDto { SessionId = request.SessionId, Answer = answer, Sources = sources };
         }
         public async Task<IEnumerable<ChatMessageDto>> GetHistoryAsync(string sessionId, string userId)
         {
@@ -226,6 +275,7 @@ namespace SmartEdu.Business.Services
             var client = _httpFactory.CreateClient();
             client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", hfToken);
             client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+            client.Timeout = TimeSpan.FromSeconds(30);  // Set 30 second timeout
 
             string modelUrl = "https://router.huggingface.co/hf-inference/models/intfloat/multilingual-e5-base/pipeline/feature-extraction";
 
@@ -233,15 +283,26 @@ namespace SmartEdu.Business.Services
             var payload = new { inputs = $"query: {question}" };
             using var content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");
 
-            var resp = await client.PostAsync(modelUrl, content);
-            resp.EnsureSuccessStatusCode();
-            var respJson = await resp.Content.ReadAsStringAsync();
+            try
+            {
+                var resp = await client.PostAsync(modelUrl, content);
+                resp.EnsureSuccessStatusCode();
+                var respJson = await resp.Content.ReadAsStringAsync();
 
-            using var docJson = JsonDocument.Parse(respJson);
-            var root = docJson.RootElement;
-            var vectorArray = root.ValueKind == JsonValueKind.Array && root[0].ValueKind != JsonValueKind.Number ? root[0] : root;
+                using var docJson = JsonDocument.Parse(respJson);
+                var root = docJson.RootElement;
+                var vectorArray = root.ValueKind == JsonValueKind.Array && root[0].ValueKind != JsonValueKind.Number ? root[0] : root;
 
-            return vectorArray.EnumerateArray().Select(x => x.GetSingle()).ToArray();
+                return vectorArray.EnumerateArray().Select(x => x.GetSingle()).ToArray();
+            }
+            catch (HttpRequestException ex)
+            {
+                throw new Exception($"Lỗi khi gọi HuggingFace API: {ex.Message}");
+            }
+            catch (TaskCanceledException ex)
+            {
+                throw new Exception($"HuggingFace API timeout (>30s): {ex.Message}");
+            }
         }
 
         private async Task<string> GenerateGeminiResponseAsync(string context, string question)
@@ -277,37 +338,49 @@ CÂU HỎI:
             };
 
             var client = _httpFactory.CreateClient();
+            client.Timeout = TimeSpan.FromSeconds(60);  // Set 60 second timeout for Gemini
             using var content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");
 
-            var resp = await client.PostAsync(url, content);
-            var respJson = await resp.Content.ReadAsStringAsync();
-
-            if (!resp.IsSuccessStatusCode)
+            try
             {
-                throw new Exception($"Lỗi báo từ Google: {respJson}");
-            }
+                var resp = await client.PostAsync(url, content);
+                var respJson = await resp.Content.ReadAsStringAsync();
 
-            using var docJson = JsonDocument.Parse(respJson);
-
-            var root = docJson.RootElement;
-            var candidates = root.GetProperty("candidates");
-
-            if (candidates.GetArrayLength() == 0) return "Không có phản hồi từ AI.";
-
-            var contentElement = candidates[0].GetProperty("content");
-            var parts = contentElement.GetProperty("parts");
-
-            StringBuilder fullAnswer = new StringBuilder();
-            foreach (var part in parts.EnumerateArray())
-            {
-                if (part.TryGetProperty("text", out var textElement))
+                if (!resp.IsSuccessStatusCode)
                 {
-                    fullAnswer.Append(textElement.GetString());
+                    throw new Exception($"Lỗi báo từ Google: {respJson}");
                 }
-            }
 
-            string finalResult = fullAnswer.ToString().Trim();
-            return string.IsNullOrEmpty(finalResult) ? "Không có phản hồi từ AI." : finalResult;
+                using var docJson = JsonDocument.Parse(respJson);
+
+                var root = docJson.RootElement;
+                var candidates = root.GetProperty("candidates");
+
+                if (candidates.GetArrayLength() == 0) return "Không có phản hồi từ AI.";
+
+                var contentElement = candidates[0].GetProperty("content");
+                var parts = contentElement.GetProperty("parts");
+
+                StringBuilder fullAnswer = new StringBuilder();
+                foreach (var part in parts.EnumerateArray())
+                {
+                    if (part.TryGetProperty("text", out var textElement))
+                    {
+                        fullAnswer.Append(textElement.GetString());
+                    }
+                }
+
+                string finalResult = fullAnswer.ToString().Trim();
+                return string.IsNullOrEmpty(finalResult) ? "Không có phản hồi từ AI." : finalResult;
+            }
+            catch (TaskCanceledException ex)
+            {
+                throw new Exception($"Gemini API timeout (>60s): {ex.Message}");
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Lỗi khi gọi Gemini API: {ex.Message}");
+            }
         }
 
         private static double CosineSimilarity(float[] a, float[] b)

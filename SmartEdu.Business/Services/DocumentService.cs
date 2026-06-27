@@ -119,8 +119,8 @@ namespace SmartEdu.Business.Services
         public async Task<DocumentDto> UploadAsync(IFormFile file, string title, int subjectId, string webRootPath)
         {
             var ext = Path.GetExtension(file.FileName).ToLower();
-            if (ext is not ".pdf" and not ".docx")
-                throw new InvalidOperationException("Chỉ hỗ trợ PDF và DOCX.");
+            if (ext is not ".pdf" and not ".docx" and not ".pptx")
+                throw new InvalidOperationException("Chỉ hỗ trợ PDF, DOCX và PPTX.");
 
             if (string.IsNullOrWhiteSpace(webRootPath))
             {
@@ -321,6 +321,9 @@ namespace SmartEdu.Business.Services
                         EmbeddingJson = JsonSerializer.Serialize(vector),
                         EmbeddingModel = "multilingual-e5-base",
                         CreatedAt = DateTime.UtcNow,
+                        PageNumber = pageNumber,
+                        SectionTitle = sectionTitle,
+                        SourceType = sourceType
                     };
 
                     await _chunkRepo.AddAsync(chunkEntity);
@@ -335,6 +338,22 @@ namespace SmartEdu.Business.Services
                     await _notification.ChunkProcessed(documentId, chunkEntity.ChunkIndex + 1, totalChunks, doc.SubjectId);
                     await Task.Delay(300);
                 }
+
+                // Save remaining chunks that haven't been saved yet
+                if (pendingCount > 0)
+                {
+                    await _chunkRepo.SaveChangesAsync();
+                    pendingCount = 0;
+                }
+
+                // Update document status to Ready after successful embedding
+                doc.Status = DocumentStatus.Ready;
+                doc.UpdatedAt = DateTime.UtcNow;
+                _docRepo.Update(doc);
+                await _docRepo.SaveChangesAsync();
+
+                // Notify that processing is complete
+                await _notification.ProcessingCompleted(documentId, doc.SubjectId);
             }
             catch (Exception ex)
             {
